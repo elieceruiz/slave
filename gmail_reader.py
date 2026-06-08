@@ -13,6 +13,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+from config import get_env   # 🔥 NUEVO
+
 
 # ==========================================================
 # CONFIGURACIÓN
@@ -22,38 +24,65 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly"
 ]
 
-creds = None
-
 
 # ==========================================================
-# AUTENTICACIÓN GOOGLE
+# AUTENTICACIÓN GOOGLE (DUAL MODE)
 # ==========================================================
 
-if os.path.exists("token.json"):
+def get_gmail_creds():
 
-    creds = Credentials.from_authorized_user_file(
-        "token.json",
-        SCOPES
-    )
+    # =========================
+    # CLOUD (Streamlit Secrets)
+    # =========================
 
-if not creds or not creds.valid:
+    refresh_token = get_env("GMAIL_REFRESH_TOKEN")
 
-    if creds and creds.expired and creds.refresh_token:
+    if refresh_token:
+        return Credentials(
+            None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=get_env("GMAIL_CLIENT_ID"),
+            client_secret=get_env("GMAIL_CLIENT_SECRET"),
+            scopes=SCOPES,
+        )
 
-        creds.refresh(Request())
+    # =========================
+    # LOCAL (token.json)
+    # =========================
 
-    else:
+    creds = None
 
-        flow = InstalledAppFlow.from_client_secrets_file(
-            "credentials.json",
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file(
+            "token.json",
             SCOPES
         )
 
-        creds = flow.run_local_server(port=0)
+    if not creds or not creds.valid:
 
-    with open("token.json", "w") as token:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
 
-        token.write(creds.to_json())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "credentials.json",
+                SCOPES
+            )
+
+            creds = flow.run_local_server(port=0)
+
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+
+    return creds
+
+
+# ==========================================================
+# OBTENER CREDENCIALES
+# ==========================================================
+
+creds = get_gmail_creds()
 
 print("✓ Autenticación exitosa")
 
@@ -109,18 +138,15 @@ print(f"Encontrados: {len(mensajes)} correos\n")
 
 def extraer_texto(payload):
 
-    # Caso simple
     if "body" in payload:
 
         data = payload["body"].get("data")
 
         if data:
-
             return base64.urlsafe_b64decode(
                 data
             ).decode("utf-8", errors="ignore")
 
-    # Caso multipart
     for parte in payload.get("parts", []):
 
         mime = parte.get("mimeType", "")
@@ -130,7 +156,6 @@ def extraer_texto(payload):
             data = parte["body"].get("data")
 
             if data:
-
                 return base64.urlsafe_b64decode(
                     data
                 ).decode("utf-8", errors="ignore")
@@ -158,6 +183,7 @@ for i, mensaje in enumerate(mensajes, start=1):
     ).execute()
 
     gmail_message_id = detalle["id"]
+
     fecha_recepcion = datetime.fromtimestamp(
         int(detalle["internalDate"]) / 1000,
         tz=timezone.utc
@@ -176,9 +202,7 @@ for i, mensaje in enumerate(mensajes, start=1):
         elif header["name"] == "Date":
             fecha = header["value"]
 
-    contenido = extraer_texto(
-        detalle["payload"]
-    )
+    contenido = extraer_texto(detalle["payload"])
 
     print(f"[{i}]")
     print(f"ID     : {gmail_message_id}")
@@ -186,7 +210,7 @@ for i, mensaje in enumerate(mensajes, start=1):
     print(f"Fecha : {fecha}")
 
     # ======================================================
-    # HISTÓRICO INICIAL (correo semilla)
+    # HISTÓRICO
     # ======================================================
 
     if asunto.strip() == "2026":
@@ -206,14 +230,13 @@ for i, mensaje in enumerate(mensajes, start=1):
             print("\n✓ Histórico creado")
 
         else:
-
             print("\n✓ Histórico ya existe")
             print("✓ Se omite creación")
 
         print(f"✓ Longitud: {len(contenido)} caracteres")
 
     # ======================================================
-    # CAPTURAS NORMALES
+    # CAPTURAS
     # ======================================================
 
     else:
@@ -224,7 +247,7 @@ for i, mensaje in enumerate(mensajes, start=1):
     print("\n" + "=" * 80 + "\n")
 
     # ======================================================
-    # ESTRUCTURA FINAL PARA PARSER
+    # OUTPUT PARA PARSER
     # ======================================================
 
     correos_procesados.append({
