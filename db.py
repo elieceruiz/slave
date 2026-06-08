@@ -4,23 +4,19 @@
 # IMPORTS
 # ==========================================================
 
-import os
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
-from dotenv import load_dotenv
+from config import get_env
 
 
 # ==========================================================
-# CARGAR VARIABLES DE ENTORNO
+# VARIABLES DE ENTORNO (LOCAL + CLOUD)
 # ==========================================================
 
-load_dotenv()
-
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = get_env("MONGO_URI")
 
 if not MONGO_URI:
-    raise ValueError("❌ MONGO_URI no está definida en el .env")
-
+    raise ValueError("❌ MONGO_URI no está definida")
 
 # ==========================================================
 # CONEXIÓN MONGO
