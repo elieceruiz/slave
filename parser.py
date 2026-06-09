@@ -34,7 +34,6 @@ ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
 def obtener_timestamp(asunto, fecha_correo, fecha_recepcion=None):
 
-    # internalDate de Gmail representa la recepción real del mensaje.
     if fecha_recepcion:
         return fecha_recepcion
 
@@ -56,7 +55,7 @@ def obtener_timestamp(asunto, fecha_correo, fecha_recepcion=None):
 
 
 # ==========================================================
-# EXTRAER MÉTRICAS DE UN BLOQUE (CORREGIDO)
+# EXTRAER MÉTRICAS
 # ==========================================================
 
 def extraer_metricas(texto):
@@ -70,22 +69,35 @@ def extraer_metricas(texto):
         return int(match.group(1)) if match else None
 
     return {
-        # CSAT
         "csat": buscar(r"Percent Positive:\s*\**\s*([\d\.]+)%"),
         "csat_respuestas": buscar_int(r"Percent Positive:.*?based on (\d+) responses"),
 
-        # RESOLVED
         "resolved": buscar(r"Percent Resolved:\s*\**\s*([\d\.]+)%"),
         "resolved_respuestas": buscar_int(r"Percent Resolved:.*?based on (\d+) responses"),
 
-        # NPS
         "nps": buscar(r"Net Promoter Score.*?:\s*\**\s*([-\d\.]+)"),
         "nps_respuestas": buscar_int(r"Net Promoter Score.*?based on (\d+) responses")
     }
 
 
 # ==========================================================
-# PARSEAR HISTÓRICO (VARIOS MESES)
+# VALIDACIÓN DE MÉTRICAS (🔥 NUEVO)
+# ==========================================================
+
+def metricas_validas(metricas):
+    """
+    Evita que datos incompletos o mal formateados lleguen a Mongo.
+    Solo pasa si las 3 métricas principales existen.
+    """
+    return (
+        metricas["csat"] is not None and
+        metricas["resolved"] is not None and
+        metricas["nps"] is not None
+    )
+
+
+# ==========================================================
+# PARSEAR HISTÓRICO
 # ==========================================================
 
 def parsear_historico(contenido, timestamp):
@@ -109,6 +121,11 @@ def parsear_historico(contenido, timestamp):
 
         metricas = extraer_metricas(cuerpo)
 
+        # 🔥 VALIDACIÓN (NUEVO)
+        if not metricas_validas(metricas):
+            print(f"⛔ Histórico descartado para {mes}: métricas incompletas")
+            continue
+
         resultados.append({
             "timestamp_captura": timestamp,
             "mes": mes,
@@ -119,7 +136,7 @@ def parsear_historico(contenido, timestamp):
 
 
 # ==========================================================
-# PARSEAR CAPTURA NORMAL (UN SOLO MES)
+# PARSEAR CAPTURA NORMAL
 # ==========================================================
 
 def parsear_captura(contenido, timestamp):
@@ -141,6 +158,11 @@ def parsear_captura(contenido, timestamp):
 
     metricas = extraer_metricas(contenido)
 
+    # 🔥 VALIDACIÓN (NUEVO)
+    if not metricas_validas(metricas):
+        print("⛔ Captura descartada: métricas incompletas")
+        return []
+
     return [{
         "timestamp_captura": timestamp,
         "mes": mes,
@@ -149,7 +171,7 @@ def parsear_captura(contenido, timestamp):
 
 
 # ==========================================================
-# FUNCIÓN PRINCIPAL
+# PARSEAR CORREO
 # ==========================================================
 
 def parsear_correo(correo):
