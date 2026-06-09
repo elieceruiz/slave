@@ -13,7 +13,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from config import get_env   # 🔥 NUEVO
+from config import get_env
 
 
 # ==========================================================
@@ -31,10 +31,6 @@ SCOPES = [
 
 def get_gmail_creds():
 
-    # =========================
-    # CLOUD (Streamlit Secrets)
-    # =========================
-
     refresh_token = get_env("GMAIL_REFRESH_TOKEN")
 
     if refresh_token:
@@ -46,10 +42,6 @@ def get_gmail_creds():
             client_secret=get_env("GMAIL_CLIENT_SECRET"),
             scopes=SCOPES,
         )
-
-    # =========================
-    # LOCAL (token.json)
-    # =========================
 
     creds = None
 
@@ -76,60 +68,6 @@ def get_gmail_creds():
             token.write(creds.to_json())
 
     return creds
-
-
-# ==========================================================
-# OBTENER CREDENCIALES
-# ==========================================================
-
-creds = get_gmail_creds()
-
-print("✓ Autenticación exitosa")
-
-
-# ==========================================================
-# CONEXIÓN GMAIL
-# ==========================================================
-
-service = build(
-    "gmail",
-    "v1",
-    credentials=creds
-)
-
-
-# ==========================================================
-# BÚSQUEDA DE CORREOS
-# ==========================================================
-
-resultado = service.users().messages().list(
-    userId="me",
-    q='subject:"timestamp_captura:"'
-).execute()
-
-mensajes = resultado.get("messages", [])
-
-modo_busqueda = "asunto timestamp_captura"
-
-
-# ==========================================================
-# FALLBACK: etiqueta slave
-# ==========================================================
-
-if len(mensajes) == 0:
-
-    resultado = service.users().messages().list(
-        userId="me",
-        q="label:slave"
-    ).execute()
-
-    mensajes = resultado.get("messages", [])
-
-    modo_busqueda = "etiqueta slave"
-
-
-print(f"\nModo búsqueda: {modo_busqueda}")
-print(f"Encontrados: {len(mensajes)} correos\n")
 
 
 # ==========================================================
@@ -164,103 +102,158 @@ def extraer_texto(payload):
 
 
 # ==========================================================
-# SALIDA PARA PARSER
+# 🔥 FUNCIÓN ENVOLTORIO (CLAVE PARA RENDER)
 # ==========================================================
 
-correos_procesados = []
+def obtener_correos():
 
+    # ======================================================
+    # OBTENER CREDENCIALES
+    # ======================================================
 
-# ==========================================================
-# RECORRER CORREOS
-# ==========================================================
+    creds = get_gmail_creds()
 
-for i, mensaje in enumerate(mensajes, start=1):
+    print("✓ Autenticación exitosa")
 
-    detalle = service.users().messages().get(
-        userId="me",
-        id=mensaje["id"],
-        format="full"
-    ).execute()
+    # ======================================================
+    # CONEXIÓN GMAIL
+    # ======================================================
 
-    gmail_message_id = detalle["id"]
-
-    fecha_recepcion = datetime.fromtimestamp(
-        int(detalle["internalDate"]) / 1000,
-        tz=timezone.utc
+    service = build(
+        "gmail",
+        "v1",
+        credentials=creds
     )
 
-    headers = detalle["payload"]["headers"]
-
-    asunto = ""
-    fecha = ""
-
-    for header in headers:
-
-        if header["name"] == "Subject":
-            asunto = header["value"]
-
-        elif header["name"] == "Date":
-            fecha = header["value"]
-
-    contenido = extraer_texto(detalle["payload"])
-
-    print(f"[{i}]")
-    print(f"ID     : {gmail_message_id}")
-    print(f"Asunto: {asunto}")
-    print(f"Fecha : {fecha}")
-
     # ======================================================
-    # HISTÓRICO
+    # BÚSQUEDA DE CORREOS
     # ======================================================
 
-    if asunto.strip() == "2026":
+    resultado = service.users().messages().list(
+        userId="me",
+        q='subject:"timestamp_captura:"'
+    ).execute()
 
-        historico_path = "historico_2026.md"
+    mensajes = resultado.get("messages", [])
 
-        if not os.path.exists(historico_path):
+    modo_busqueda = "asunto timestamp_captura"
 
-            with open(
-                historico_path,
-                "w",
-                encoding="utf-8"
-            ) as archivo:
+    # ======================================================
+    # FALLBACK: etiqueta slave
+    # ======================================================
 
-                archivo.write(contenido)
+    if len(mensajes) == 0:
 
-            print("\n✓ Histórico creado")
+        resultado = service.users().messages().list(
+            userId="me",
+            q="label:slave"
+        ).execute()
+
+        mensajes = resultado.get("messages", [])
+
+        modo_busqueda = "etiqueta slave"
+
+    print(f"\nModo búsqueda: {modo_busqueda}")
+    print(f"Encontrados: {len(mensajes)} correos\n")
+
+    # ======================================================
+    # SALIDA PARA PARSER
+    # ======================================================
+
+    correos_procesados = []
+
+    # ======================================================
+    # RECORRER CORREOS
+    # ======================================================
+
+    for i, mensaje in enumerate(mensajes, start=1):
+
+        detalle = service.users().messages().get(
+            userId="me",
+            id=mensaje["id"],
+            format="full"
+        ).execute()
+
+        gmail_message_id = detalle["id"]
+
+        fecha_recepcion = datetime.fromtimestamp(
+            int(detalle["internalDate"]) / 1000,
+            tz=timezone.utc
+        )
+
+        headers = detalle["payload"]["headers"]
+
+        asunto = ""
+        fecha = ""
+
+        for header in headers:
+
+            if header["name"] == "Subject":
+                asunto = header["value"]
+
+            elif header["name"] == "Date":
+                fecha = header["value"]
+
+        contenido = extraer_texto(detalle["payload"])
+
+        print(f"[{i}]")
+        print(f"ID     : {gmail_message_id}")
+        print(f"Asunto: {asunto}")
+        print(f"Fecha : {fecha}")
+
+        # ==================================================
+        # HISTÓRICO
+        # ==================================================
+
+        if asunto.strip() == "2026":
+
+            historico_path = "historico_2026.md"
+
+            if not os.path.exists(historico_path):
+
+                with open(
+                    historico_path,
+                    "w",
+                    encoding="utf-8"
+                ) as archivo:
+
+                    archivo.write(contenido)
+
+                print("\n✓ Histórico creado")
+
+            else:
+                print("\n✓ Histórico ya existe")
+                print("✓ Se omite creación")
+
+            print(f"✓ Longitud: {len(contenido)} caracteres")
+
+        # ==================================================
+        # CAPTURAS
+        # ==================================================
 
         else:
-            print("\n✓ Histórico ya existe")
-            print("✓ Se omite creación")
 
-        print(f"✓ Longitud: {len(contenido)} caracteres")
+            print("\n--- PREVIEW DEL CONTENIDO ---\n")
+            print(contenido[:1000])
+
+        print("\n" + "=" * 80 + "\n")
+
+        # ==================================================
+        # OUTPUT PARA PARSER
+        # ==================================================
+
+        correos_procesados.append({
+            "gmail_message_id": gmail_message_id,
+            "asunto": asunto,
+            "fecha_correo": fecha,
+            "fecha_recepcion": fecha_recepcion,
+            "contenido": contenido
+        })
 
     # ======================================================
-    # CAPTURAS
+    # RESUMEN FINAL
     # ======================================================
 
-    else:
+    print(f"\n✓ Total correos procesados: {len(correos_procesados)}")
 
-        print("\n--- PREVIEW DEL CONTENIDO ---\n")
-        print(contenido[:1000])
-
-    print("\n" + "=" * 80 + "\n")
-
-    # ======================================================
-    # OUTPUT PARA PARSER
-    # ======================================================
-
-    correos_procesados.append({
-        "gmail_message_id": gmail_message_id,
-        "asunto": asunto,
-        "fecha_correo": fecha,
-        "fecha_recepcion": fecha_recepcion,
-        "contenido": contenido
-    })
-
-
-# ==========================================================
-# RESUMEN FINAL
-# ==========================================================
-
-print(f"\n✓ Total correos procesados: {len(correos_procesados)}")
+    return correos_procesados

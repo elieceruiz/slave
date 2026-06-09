@@ -1,6 +1,6 @@
 # run.py
 
-from gmail_reader import correos_procesados
+from gmail_reader import obtener_correos
 from parser import parsear_correos
 from db import insertar_documentos, crear_indice
 
@@ -32,11 +32,18 @@ def main():
         print(f"⚠️ Índice: {e} (continuando...)")
 
     # ----------------------------
-    # 2. Parser
+    # 2. OBTENER CORREOS (🔥 NUEVO)
+    # ----------------------------
+    print("\n📩 Obteniendo correos...")
+
+    correos = obtener_correos()
+
+    # ----------------------------
+    # 3. Parser
     # ----------------------------
     print("\n📥 Parseando correos...")
 
-    datos = parsear_correos(correos_procesados)
+    datos = parsear_correos(correos)
 
     print(f"✓ Documentos generados: {len(datos)}")
 
@@ -45,7 +52,7 @@ def main():
         return
 
     # ----------------------------
-    # 3. Mongo
+    # 4. Mongo
     # ----------------------------
     print("\n💾 Insertando en Mongo...")
 
