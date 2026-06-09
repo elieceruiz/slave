@@ -5,6 +5,16 @@ from parser import parsear_correos
 from db import insertar_documentos, crear_indice
 
 
+# ==========================================================
+# NUEVA FUNCIÓN (ENVOLTORIO)
+# ==========================================================
+def ejecutar_pipeline():
+    main()
+
+
+# ==========================================================
+# TU LÓGICA ORIGINAL (INTACTA)
+# ==========================================================
 def main():
 
     print("\n==============================")
