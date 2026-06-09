@@ -1,3 +1,5 @@
+# app.py
+
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -230,7 +232,10 @@ def desglose_csat(csat, total):
     positivas = min(max(positivas, 0), int(total))
     return positivas, int(total) - positivas
 
-
+def positivas_para_meta(total, meta=80.0):
+    if not total:
+        return 0
+    return int((meta * total + 99) // 100)
 st.title("Slave")
 st.caption("Seguimiento operativo de CSAT")
 
@@ -253,6 +258,8 @@ csat_actual = ultima.get("csat")
 muestras = ultima.get("csat_respuestas")
 muestras = 0 if pd.isna(muestras) else int(muestras)
 positivas, no_positivas = desglose_csat(csat_actual, muestras)
+positivas_objetivo = positivas_para_meta(muestras, META_CSAT)
+faltantes_positivas = max(positivas_objetivo - positivas, 0)
 brecha_csat = (
     None
     if pd.isna(csat_actual)
@@ -272,6 +279,7 @@ elif brecha_csat is None:
 else:
     mensaje_meta = (
         f"Faltan {brecha_csat:.1f} puntos porcentuales "
+        f"y {faltantes_positivas} positivas "
         f"para llegar al {META_CSAT:.0f}%."
     )
 
