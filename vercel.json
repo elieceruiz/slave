@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/test.py": {
-      "maxDuration": 10
-    }
-  }
-}
