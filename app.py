@@ -288,8 +288,7 @@ elif brecha_csat is None:
     mensaje_meta = "No hay un CSAT válido para calcular la brecha."
 else:
     mensaje_meta = (
-        f"Faltan {brecha_csat:.1f} puntos porcentuales "
-        f"y {faltantes_positivas} positivas "
+        f"Faltan {faltantes_positivas} muestras positivas "
         f"para llegar al {META_CSAT:.0f}%."
     )
 
