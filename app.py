@@ -504,15 +504,15 @@ if pd.isna(csat_actual) or csat_anterior is None:
     cambio_clase = "pulse-neutral"
 elif float(csat_actual) > csat_anterior:
     cambio_csat = float(csat_actual) - csat_anterior
-    cambio_texto = f"Desde la señal anterior · ↑ +{cambio_csat:.1f} pp"
+    cambio_texto = f"Señal anterior · ↑ +{cambio_csat:.1f} pp"
     cambio_clase = "pulse-positive"
 elif float(csat_actual) < csat_anterior:
     cambio_csat = float(csat_actual) - csat_anterior
-    cambio_texto = f"Desde la señal anterior · ↓ {cambio_csat:.1f} pp"
+    cambio_texto = f"Señal anterior · ↓ {cambio_csat:.1f} pp"
     cambio_clase = "pulse-negative"
 else:
     cambio_csat = 0.0
-    cambio_texto = "Desde la señal anterior · sin cambio"
+    cambio_texto = "Señal anterior · sin cambio"
     cambio_clase = "pulse-neutral"
 
 if proyecciones.empty:
@@ -533,14 +533,14 @@ brecha_csat = (
 )
 meta_alcanzada = brecha_csat == 0 if brecha_csat is not None else False
 
-if brecha_csat is None:
+if pd.isna(csat_actual):
     resumen_meta = f"El horizonte está en {META_CSAT:.0f}%."
 elif meta_alcanzada:
-    resumen_meta = f"Estás en el horizonte de {META_CSAT:.0f}%."
+    resumen_meta = "Ya estás en el horizonte."
 else:
     resumen_meta = (
-        f"A {brecha_csat:.1f} puntos del horizonte · "
-        f"El horizonte está en {META_CSAT:.0f}%."
+        f"Faltan {faltantes_positivas} experiencias positivas "
+        "para llegar al horizonte."
     )
 
 ultima_colombia = fecha_colombia(ultima["timestamp_captura"])
