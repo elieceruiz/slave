@@ -232,6 +232,44 @@ def desglose_csat(csat, total):
     positivas = min(max(positivas, 0), int(total))
     return positivas, int(total) - positivas
 
+
+def calcular_proyecciones_csat(csat, total):
+    if pd.isna(csat) or pd.isna(total) or int(total) <= 0:
+        return pd.DataFrame()
+
+    total = int(total)
+    positivas, _ = desglose_csat(csat, total)
+    escenarios = []
+
+    for cantidad in (1, 2, 3):
+        total_proyectado = total + cantidad
+        csat_positivo = (
+            (positivas + cantidad) / total_proyectado
+        ) * 100
+        csat_negativo = (positivas / total_proyectado) * 100
+
+        escenarios.append({
+            "Escenario": (
+                f"+{cantidad} positiva"
+                if cantidad == 1
+                else f"+{cantidad} positivas"
+            ),
+            "CSAT proyectado": csat_positivo,
+            "Cambio vs actual": csat_positivo - float(csat),
+        })
+        escenarios.append({
+            "Escenario": (
+                f"+{cantidad} negativa"
+                if cantidad == 1
+                else f"+{cantidad} negativas"
+            ),
+            "CSAT proyectado": csat_negativo,
+            "Cambio vs actual": csat_negativo - float(csat),
+        })
+
+    return pd.DataFrame(escenarios)
+
+
 def positivas_para_meta(total, positivas):
     if not total:
         return 0
@@ -363,6 +401,34 @@ with complementaria_2:
         "—" if pd.isna(ultima.get("nps")) else f"{ultima.get('nps'):.1f}",
     )
     st.caption(f"{nps_muestras} muestras de NPS")
+
+st.markdown("#### Proyecciones CSAT")
+proyecciones = calcular_proyecciones_csat(csat_actual, muestras)
+
+if proyecciones.empty:
+    st.warning(
+        "No hay datos suficientes de CSAT y muestras para calcular proyecciones."
+    )
+else:
+    st.dataframe(
+        proyecciones,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Escenario": st.column_config.TextColumn("Escenario"),
+            "CSAT proyectado": st.column_config.NumberColumn(
+                "CSAT proyectado",
+                format="%.1f%%",
+            ),
+            "Cambio vs actual": st.column_config.NumberColumn(
+                "Cambio vs actual",
+                format="%+.1f pp",
+            ),
+        },
+    )
+    st.caption(
+        "Simulación basada en las respuestas positivas y muestras actuales."
+    )
 
 st.divider()
 st.subheader("Tendencia del mes")

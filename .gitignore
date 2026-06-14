@@ -39,3 +39,4 @@ Thumbs.db
 # =========================
 .vscode/
 .idea/audit_duplicates.py
+audit_duplicates.py
