@@ -15,7 +15,7 @@ ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
 
 st.set_page_config(
-    page_title="Slave | CSAT",
+    page_title="Faro 80",
     page_icon="S",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -25,14 +25,24 @@ st.markdown(
     """
     <style>
     [data-testid="stSidebar"],
-    [data-testid="collapsedControl"] {
+    [data-testid="collapsedControl"],
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    #MainMenu,
+    footer {
         display: none;
     }
 
+    [data-testid="stAppViewContainer"] {
+        background: #0b0d14;
+        color: #f2f0ea;
+    }
+
     .block-container {
-        max-width: 980px;
-        padding-top: 2.25rem;
-        padding-bottom: 4rem;
+        max-width: 720px;
+        padding-top: 0.75rem;
+        padding-bottom: 3rem;
     }
 
     h1 {
@@ -54,86 +64,246 @@ st.markdown(
         letter-spacing: -0.04em;
     }
 
-    .status-box {
-        border-left: 4px solid #7c8cff;
-        background: rgba(124, 140, 255, 0.08);
-        border-radius: 0.35rem 0.8rem 0.8rem 0.35rem;
-        margin: 0.4rem 0 1.25rem;
-        padding: 0.9rem 1rem;
+    .faro-header {
+        margin-bottom: 0.55rem;
     }
 
-    .status-box strong {
-        display: block;
-        font-size: 1.05rem;
-        margin-bottom: 0.15rem;
+    .faro-brand {
+        color: #f2b95d;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
     }
 
-    .status-box span {
-        color: rgba(250, 250, 250, 0.68);
+    .faro-signal {
+        color: #9299a8;
+        font-size: 0.78rem;
+        margin-top: 0.12rem;
     }
 
-    .metric-grid {
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        margin-bottom: 1rem;
-    }
-
-    .metric-card {
-        background: rgba(255, 255, 255, 0.035);
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        border-radius: 0.9rem;
-        min-width: 0;
+    .pulse-card {
+        background:
+            radial-gradient(
+                circle at 78% 18%,
+                rgba(242, 185, 93, 0.10),
+                transparent 34%
+            ),
+            #121622;
+        border: 1px solid #252b3b;
+        border-radius: 1rem;
+        margin: 0 0 1.1rem;
         padding: 1rem;
     }
 
-    .metric-label {
-        color: rgba(250, 250, 250, 0.66);
-        font-size: 0.88rem;
+    .pulse-main,
+    .pulse-chip-grid {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .pulse-kicker,
+    .pulse-meta,
+    .pulse-chip-label {
+        color: #9299a8;
+        font-size: 0.78rem;
+    }
+
+    .pulse-kicker {
+        color: #9ca8ff;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+    }
+
+    .pulse-main {
+        align-items: flex-end;
+        gap: 1rem;
+        margin-top: 0.65rem;
+    }
+
+    .pulse-value {
+        color: #f2f0ea;
+        font-size: 3.15rem;
+        font-weight: 700;
+        letter-spacing: -0.06em;
+        line-height: 1;
+    }
+
+    .pulse-delta {
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        padding: 0.3rem 0.55rem;
+        white-space: nowrap;
+    }
+
+    .pulse-positive {
+        background: rgba(105, 200, 156, 0.12);
+        color: #69c89c;
+    }
+
+    .pulse-negative {
+        background: rgba(219, 123, 131, 0.12);
+        color: #db7b83;
+    }
+
+    .pulse-neutral {
+        background: rgba(255, 255, 255, 0.07);
+        color: rgba(250, 250, 250, 0.72);
+    }
+
+    .pulse-meta {
+        margin-top: 0.4rem;
+    }
+
+    .horizon-map {
+        margin-top: 1rem;
+    }
+
+    .horizon-labels {
+        color: #9299a8;
+        display: flex;
+        font-size: 0.72rem;
+        justify-content: space-between;
         margin-bottom: 0.35rem;
     }
 
-    .metric-value {
-        font-size: 1.75rem;
-        font-weight: 600;
-        letter-spacing: -0.04em;
-        line-height: 1.15;
+    .horizon-track {
+        background: #252b3b;
+        border-radius: 999px;
+        height: 4px;
+        position: relative;
     }
 
-    .metric-detail {
-        color: rgba(250, 250, 250, 0.58);
+    .horizon-progress {
+        background: #9ca8ff;
+        border-radius: 999px;
+        height: 4px;
+    }
+
+    .horizon-marker {
+        background: #9ca8ff;
+        border: 3px solid #121622;
+        border-radius: 50%;
+        box-shadow: 0 0 0 1px rgba(156, 168, 255, 0.45);
+        height: 12px;
+        position: absolute;
+        top: -4px;
+        transform: translateX(-50%);
+        width: 12px;
+    }
+
+    .horizon-target {
+        background: #f2b95d;
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px rgba(242, 185, 93, 0.12);
+        height: 8px;
+        left: 80%;
+        position: absolute;
+        top: -2px;
+        transform: translateX(-50%);
+        width: 8px;
+    }
+
+    .experiences {
+        border-top: 1px solid #252b3b;
+        margin-top: 1.1rem;
+        padding-top: 1rem;
+    }
+
+    .experiences-title,
+    .routes-title {
+        color: #f2f0ea;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+
+    .experience-dots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.38rem;
+        margin: 0.75rem 0 0.65rem;
+    }
+
+    .experience-dot {
+        border-radius: 50%;
+        height: 0.58rem;
+        width: 0.58rem;
+    }
+
+    .experience-positive {
+        background: #69c89c;
+        box-shadow: 0 0 0 2px rgba(105, 200, 156, 0.08);
+    }
+
+    .experience-other {
+        background: #555d70;
+    }
+
+    .experience-legend {
+        color: #9299a8;
         font-size: 0.78rem;
-        margin-top: 0.35rem;
+    }
+
+    .routes-title {
+        margin-top: 1rem;
+    }
+
+    .pulse-chip-grid {
+        gap: 0.55rem;
+        margin-top: 0.55rem;
+    }
+
+    .pulse-chip {
+        border: 1px solid #252b3b;
+        border-radius: 0.7rem;
+        flex: 1;
+        padding: 0.65rem;
+    }
+
+    .pulse-chip-positive {
+        background: rgba(105, 200, 156, 0.06);
+    }
+
+    .pulse-chip-negative {
+        background: rgba(219, 123, 131, 0.06);
+    }
+
+    .pulse-chip-value {
+        font-size: 1.05rem;
+        font-weight: 650;
+        margin-top: 0.15rem;
     }
 
     @media (max-width: 700px) {
         .block-container {
             padding-left: 1rem;
             padding-right: 1rem;
-            padding-top: 1.25rem;
+            padding-top: 0.6rem;
         }
 
-        .metric-grid {
-            gap: 0.7rem;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .metric-card {
+        .pulse-card {
             padding: 0.85rem;
         }
 
-        .metric-value {
-            font-size: 1.4rem;
+        .pulse-value {
+            font-size: 2.75rem;
         }
 
-        .status-box {
-            padding: 0.8rem;
+        .experience-dots {
+            gap: 0.34rem;
+        }
+
+        .faro-header {
+            margin-bottom: 0.45rem;
         }
     }
 
     @media (max-width: 390px) {
-        .metric-grid {
-            grid-template-columns: 1fr;
+        .pulse-chip {
+            padding: 0.55rem;
         }
     }
     </style>
@@ -220,6 +390,25 @@ def fecha_colombia(valor):
     return pd.Timestamp(valor).tz_convert(ZONA_COLOMBIA)
 
 
+def formatear_ultima_senal(valor):
+    fecha = fecha_colombia(valor)
+    meses = (
+        "ene",
+        "feb",
+        "mar",
+        "abr",
+        "may",
+        "jun",
+        "jul",
+        "ago",
+        "sep",
+        "oct",
+        "nov",
+        "dic",
+    )
+    return f"{fecha.day:02d} {meses[fecha.month - 1]} · {fecha:%H:%M}"
+
+
 def valor_porcentaje(valor):
     return "—" if pd.isna(valor) else f"{valor:.1f}%"
 
@@ -282,9 +471,6 @@ def positivas_para_meta(total, positivas):
             return x
         x += 1
 
-st.title("Slave")
-st.caption("Seguimiento operativo de CSAT")
-
 try:
     capturas = cargar_capturas()
 except Exception as error:
@@ -304,6 +490,38 @@ csat_actual = ultima.get("csat")
 muestras = ultima.get("csat_respuestas")
 muestras = 0 if pd.isna(muestras) else int(muestras)
 positivas, no_positivas = desglose_csat(csat_actual, muestras)
+proyecciones = calcular_proyecciones_csat(csat_actual, muestras)
+
+csat_anterior = None
+if len(capturas_mes) > 1:
+    valor_anterior = capturas_mes.iloc[-2].get("csat")
+    if not pd.isna(valor_anterior):
+        csat_anterior = float(valor_anterior)
+
+if pd.isna(csat_actual) or csat_anterior is None:
+    cambio_csat = None
+    cambio_texto = "Sin señal anterior"
+    cambio_clase = "pulse-neutral"
+elif float(csat_actual) > csat_anterior:
+    cambio_csat = float(csat_actual) - csat_anterior
+    cambio_texto = f"Desde la señal anterior · ↑ +{cambio_csat:.1f} pp"
+    cambio_clase = "pulse-positive"
+elif float(csat_actual) < csat_anterior:
+    cambio_csat = float(csat_actual) - csat_anterior
+    cambio_texto = f"Desde la señal anterior · ↓ {cambio_csat:.1f} pp"
+    cambio_clase = "pulse-negative"
+else:
+    cambio_csat = 0.0
+    cambio_texto = "Desde la señal anterior · sin cambio"
+    cambio_clase = "pulse-neutral"
+
+if proyecciones.empty:
+    proxima_positiva = None
+    proxima_negativa = None
+else:
+    proxima_positiva = proyecciones.iloc[0]["CSAT proyectado"]
+    proxima_negativa = proyecciones.iloc[1]["CSAT proyectado"]
+
 faltantes_positivas = positivas_para_meta(
     muestras,
     positivas
@@ -314,77 +532,94 @@ brecha_csat = (
     else max(META_CSAT - float(csat_actual), 0)
 )
 meta_alcanzada = brecha_csat == 0 if brecha_csat is not None else False
-progreso = (
-    0
-    if pd.isna(csat_actual)
-    else min(max(float(csat_actual) / META_CSAT, 0), 1)
-)
 
-if meta_alcanzada:
-    mensaje_meta = f"Meta mínima de {META_CSAT:.0f}% alcanzada."
-elif brecha_csat is None:
-    mensaje_meta = "No hay un CSAT válido para calcular la brecha."
+if brecha_csat is None:
+    resumen_meta = f"El horizonte está en {META_CSAT:.0f}%."
+elif meta_alcanzada:
+    resumen_meta = f"Estás en el horizonte de {META_CSAT:.0f}%."
 else:
-    mensaje_meta = (
-        f"Faltan {faltantes_positivas} muestras positivas "
-        f"para llegar al {META_CSAT:.0f}%."
+    resumen_meta = (
+        f"A {brecha_csat:.1f} puntos del horizonte · "
+        f"El horizonte está en {META_CSAT:.0f}%."
     )
 
-st.markdown(
-    f"""
-    <div class="status-box">
-        <strong>{valor_porcentaje(csat_actual)} de CSAT: {positivas} positivas de {muestras}</strong>
-        <span>{mensaje_meta}</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-brecha_texto = (
-    "Meta cumplida"
-    if meta_alcanzada
-    else ("—" if brecha_csat is None else f"{brecha_csat:.1f} pp")
-)
 ultima_colombia = fecha_colombia(ultima["timestamp_captura"])
+ultima_senal_texto = formatear_ultima_senal(
+    ultima["timestamp_captura"]
+)
+posicion_actual = (
+    0
+    if pd.isna(csat_actual)
+    else min(max(float(csat_actual), 0), 100)
+)
+puntos_experiencias = (
+    '<span class="experience-dot experience-positive"></span>' * positivas
+    + '<span class="experience-dot experience-other"></span>' * no_positivas
+)
 
 st.markdown(
     f"""
-    <div class="metric-grid">
-        <div class="metric-card">
-            <div class="metric-label">CSAT actual</div>
-            <div class="metric-value">{valor_porcentaje(csat_actual)}</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Positivas</div>
-            <div class="metric-value">{positivas}</div>
-            <div class="metric-detail">Usuarios satisfechos</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">No positivas</div>
-            <div class="metric-value">{no_positivas}</div>
-            <div class="metric-detail">Resto de respuestas</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Muestras CSAT</div>
-            <div class="metric-value">{muestras}</div>
-            <div class="metric-detail">Total de respuestas</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Brecha a 80%</div>
-            <div class="metric-value">{brecha_texto}</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Última actualización</div>
-            <div class="metric-value">{ultima_colombia:%d/%m · %H:%M}</div>
-            <div class="metric-detail">Hora Colombia</div>
+    <div class="faro-header">
+        <div class="faro-brand">FARO 80</div>
+        <div class="faro-signal">
+            Última señal: {ultima_senal_texto}
         </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-st.progress(progreso)
-st.caption(f"Meta operativa: CSAT mínimo de {META_CSAT:.0f}%")
+st.markdown(
+    f"""
+    <div class="pulse-card">
+        <div class="pulse-kicker">Estás aquí</div>
+        <div class="pulse-main">
+            <div class="pulse-value">{valor_porcentaje(csat_actual)}</div>
+            <div class="pulse-delta {cambio_clase}">{cambio_texto}</div>
+        </div>
+        <div class="horizon-map">
+            <div class="horizon-labels">
+                <span>Posición actual</span>
+                <span>Horizonte · {META_CSAT:.0f}%</span>
+            </div>
+            <div class="horizon-track">
+                <div class="horizon-progress" style="width: {posicion_actual:.1f}%"></div>
+                <div class="horizon-marker" style="left: {posicion_actual:.1f}%"></div>
+                <div class="horizon-target"></div>
+            </div>
+        </div>
+        <div class="pulse-meta">{resumen_meta}</div>
+        <div class="experiences">
+            <div class="experiences-title">
+                {muestras} experiencias registradas
+            </div>
+            <div class="experience-dots">{puntos_experiencias}</div>
+            <div class="experience-legend">
+                {positivas} positivas · {no_positivas} otras
+            </div>
+        </div>
+        <div class="routes-title">Posibles rumbos</div>
+        <div class="pulse-chip-grid">
+            <div class="pulse-chip pulse-chip-positive">
+                <div class="pulse-chip-label">Próxima experiencia positiva</div>
+                <div class="pulse-chip-value">{
+                    "—" if proxima_positiva is None else f"{proxima_positiva:.1f}%"
+                }</div>
+            </div>
+            <div class="pulse-chip pulse-chip-negative">
+                <div class="pulse-chip-label">Próxima experiencia no positiva</div>
+                <div class="pulse-chip-value">{
+                    "—" if proxima_negativa is None else f"{proxima_negativa:.1f}%"
+                }</div>
+            </div>
+        </div>
+        <div class="pulse-meta">
+            Una experiencia mueve el recorrido, pero no lo define.
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.markdown("#### Métricas complementarias")
 resolved_muestras = int(ultima.get("resolved_respuestas") or 0)
@@ -403,7 +638,6 @@ with complementaria_2:
     st.caption(f"{nps_muestras} muestras de NPS")
 
 st.markdown("#### Proyecciones CSAT")
-proyecciones = calcular_proyecciones_csat(csat_actual, muestras)
 
 if proyecciones.empty:
     st.warning(
