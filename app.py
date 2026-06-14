@@ -745,11 +745,7 @@ with st.expander("Cuarto de San Alejo"):
         use_container_width=True,
     )
 
-if st.button("Actualizar datos", use_container_width=True):
-    cargar_capturas.clear()
-    st.rerun()
-
 st.caption(
     "Fuente: MongoDB Atlas · Horario: Colombia · "
-    f"Vista actualizada {datetime.now(ZONA_COLOMBIA):%d/%m/%Y %H:%M}"
+    f"Consulta observada {datetime.now(ZONA_COLOMBIA):%d/%m/%Y %H:%M}"
 )
