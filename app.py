@@ -347,6 +347,12 @@ st.markdown(
         .route-heading {
             align-items: flex-start;
         }
+
+        div[data-testid="stMarkdownContainer"]:has(.monthly-table-anchor)
+        + div [role="gridcell"] {
+            padding-left: 0.3rem;
+            padding-right: 0.3rem;
+        }
     }
 
     .pulse-chip-value {
@@ -862,8 +868,19 @@ with st.expander("Otras señales", expanded=False):
         historico["csat_respuestas"].fillna(0).astype(int)
     )
 
+    st.markdown(
+        '<div class="monthly-table-anchor"></div>',
+        unsafe_allow_html=True,
+    )
     st.dataframe(
         historico[["Mes", "CSAT", "Experiencias", "Resolved", "NPS"]],
         hide_index=True,
+        column_config={
+            "Experiencias": st.column_config.NumberColumn(
+                "Exp.",
+                format="%d",
+            ),
+            "Resolved": st.column_config.TextColumn("Res."),
+        },
         **ANCHO_STRETCH,
     )
