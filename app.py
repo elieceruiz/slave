@@ -292,7 +292,7 @@ st.markdown(
         display: grid;
         gap: 0.7rem;
         grid-template-columns: minmax(0, 1fr) auto;
-        padding: 0.75rem 0.8rem;
+        padding: 0.62rem 0.8rem;
     }
 
     .route-heading {
@@ -330,12 +330,6 @@ st.markdown(
         border: 1px solid #737b8e;
     }
 
-    .route-note {
-        color: #9299a8;
-        font-size: 0.74rem;
-        margin-top: 0.22rem;
-    }
-
     .route-value {
         color: #f2f0ea;
         font-size: 1.05rem;
@@ -347,7 +341,7 @@ st.markdown(
     @media (max-width: 480px) {
         .route-row {
             gap: 0.55rem;
-            padding: 0.7rem;
+            padding: 0.6rem 0.7rem;
         }
 
         .route-heading {
@@ -812,28 +806,19 @@ with st.expander("Otros rumbos", expanded=False):
             puntos = (
                 f'<span class="route-dot {clase_punto}"></span>' * cantidad
             )
-            nota = (
-                "El rumbo sube ligeramente."
-                if es_positivo
-                else "El recorrido baja un poco."
-            )
             filas_rumbos.append(
-                f"""
-                <div class="route-row">
-                    <div>
-                        <div class="route-heading">
-                            <span class="route-name">
-                                +{cantidad} {tipo_experiencia}
-                            </span>
-                            <span class="route-dots">{puntos}</span>
-                        </div>
-                        <div class="route-note">{nota}</div>
-                    </div>
-                    <div class="route-value">
-                        {rumbo["CSAT proyectado"]:.1f}%
-                    </div>
-                </div>
-                """
+                '<div class="route-row">'
+                '<div>'
+                '<div class="route-heading">'
+                f'<span class="route-name">+{cantidad} '
+                f'{tipo_experiencia}</span>'
+                f'<span class="route-dots">{puntos}</span>'
+                '</div>'
+                '</div>'
+                f'<div class="route-value">'
+                f'{rumbo["CSAT proyectado"]:.1f}%'
+                '</div>'
+                '</div>'
             )
         st.markdown(
             f'<div class="route-list">{"".join(filas_rumbos)}</div>',
