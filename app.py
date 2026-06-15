@@ -1,7 +1,6 @@
 # app.py
 
 import os
-from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -12,6 +11,15 @@ from pymongo import MongoClient
 
 META_CSAT = 80.0
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
+VERSION_STREAMLIT = tuple(
+    int(parte)
+    for parte in st.__version__.split(".")[:2]
+)
+ANCHO_STRETCH = (
+    {"width": "stretch"}
+    if VERSION_STREAMLIT >= (1, 58)
+    else {}
+)
 
 
 st.set_page_config(
@@ -271,6 +279,82 @@ st.markdown(
         background: rgba(219, 123, 131, 0.06);
     }
 
+    .route-list {
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .route-row {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid #252b3b;
+        border-radius: 0.75rem;
+        display: grid;
+        gap: 0.7rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 0.75rem 0.8rem;
+    }
+
+    .route-heading {
+        align-items: center;
+        display: flex;
+        gap: 0.55rem;
+        justify-content: space-between;
+    }
+
+    .route-name {
+        color: #f2f0ea;
+        font-size: 0.84rem;
+        font-weight: 600;
+    }
+
+    .route-dots {
+        display: inline-flex;
+        flex-shrink: 0;
+        gap: 0.28rem;
+    }
+
+    .route-dot {
+        border-radius: 50%;
+        height: 0.5rem;
+        width: 0.5rem;
+    }
+
+    .route-dot-positive {
+        background: #69c89c;
+        box-shadow: 0 0 0 2px rgba(105, 200, 156, 0.08);
+    }
+
+    .route-dot-other {
+        background: #555d70;
+        border: 1px solid #737b8e;
+    }
+
+    .route-note {
+        color: #9299a8;
+        font-size: 0.74rem;
+        margin-top: 0.22rem;
+    }
+
+    .route-value {
+        color: #f2f0ea;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 480px) {
+        .route-row {
+            gap: 0.55rem;
+            padding: 0.7rem;
+        }
+
+        .route-heading {
+            align-items: flex-start;
+        }
+    }
+
     .pulse-chip-value {
         font-size: 1.05rem;
         font-weight: 650;
@@ -409,6 +493,24 @@ def formatear_ultima_senal(valor):
     return f"{fecha.day:02d} {meses[fecha.month - 1]} · {fecha:%H:%M}"
 
 
+def nombre_mes(mes):
+    meses = {
+        "01": "enero",
+        "02": "febrero",
+        "03": "marzo",
+        "04": "abril",
+        "05": "mayo",
+        "06": "junio",
+        "07": "julio",
+        "08": "agosto",
+        "09": "septiembre",
+        "10": "octubre",
+        "11": "noviembre",
+        "12": "diciembre",
+    }
+    return meses.get(str(mes).split("-")[-1], str(mes))
+
+
 def valor_porcentaje(valor):
     return "—" if pd.isna(valor) else f"{valor:.1f}%"
 
@@ -473,13 +575,12 @@ def positivas_para_meta(total, positivas):
 
 try:
     capturas = cargar_capturas()
-except Exception as error:
-    st.error("No fue posible conectar con MongoDB Atlas.")
-    st.caption(str(error))
+except Exception:
+    st.error("No fue posible recibir las señales.")
     st.stop()
 
 if capturas.empty:
-    st.info("MongoDB todavía no contiene capturas para mostrar.")
+    st.info("Todavía no hay señales para mostrar.")
     st.stop()
 
 mes_actual = capturas["mes"].max()
@@ -621,54 +722,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("#### Métricas complementarias")
-resolved_muestras = int(ultima.get("resolved_respuestas") or 0)
-nps_muestras = int(ultima.get("nps_respuestas") or 0)
-
-complementaria_1, complementaria_2 = st.columns(2)
-with complementaria_1:
-    st.metric("Resolved", valor_porcentaje(ultima.get("resolved")))
-    st.caption(f"{resolved_muestras} muestras de Resolved")
-
-with complementaria_2:
-    st.metric(
-        "NPS",
-        "—" if pd.isna(ultima.get("nps")) else f"{ultima.get('nps'):.1f}",
-    )
-    st.caption(f"{nps_muestras} muestras de NPS")
-
-st.markdown("#### Proyecciones CSAT")
-
-if proyecciones.empty:
-    st.warning(
-        "No hay datos suficientes de CSAT y muestras para calcular proyecciones."
-    )
-else:
-    st.dataframe(
-        proyecciones,
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "Escenario": st.column_config.TextColumn("Escenario"),
-            "CSAT proyectado": st.column_config.NumberColumn(
-                "CSAT proyectado",
-                format="%.1f%%",
-            ),
-            "Cambio vs actual": st.column_config.NumberColumn(
-                "Cambio vs actual",
-                format="%+.1f pp",
-            ),
-        },
-    )
-    st.caption(
-        "Simulación basada en las respuestas positivas y muestras actuales."
-    )
-
 st.divider()
-st.subheader("Tendencia del mes")
+st.subheader(f"Travesía de {nombre_mes(mes_actual)}")
 st.caption(
-    f"{mes_actual} · {len(capturas_mes)} "
-    f"{'captura' if len(capturas_mes) == 1 else 'capturas'}"
+    f"{len(capturas_mes)} "
+    f"{'señal' if len(capturas_mes) == 1 else 'señales'} en el recorrido"
 )
 
 if capturas_mes["csat"].notna().sum() > 1:
@@ -678,52 +736,130 @@ if capturas_mes["csat"].notna().sum() > 1:
     )
     st.line_chart(
         grafico.set_index("timestamp_colombia")[["csat"]],
-        use_container_width=True,
         color=["#7c8cff"],
         height=350,
         y_label="CSAT",
-        x_label="Captura",
+        x_label="Señal",
+        **ANCHO_STRETCH,
     )
 else:
-    st.info("Se necesitan al menos dos capturas con CSAT para mostrar la tendencia.")
-
-st.divider()
-st.subheader("Capturas")
+    st.info("La travesía aparecerá cuando existan al menos dos señales.")
 
 tabla = capturas_mes.sort_values("timestamp_captura", ascending=False).copy()
-tabla["Captura"] = tabla["timestamp_captura"].apply(formatear_fecha)
+tabla["Señal"] = tabla["timestamp_captura"].apply(formatear_fecha)
 tabla["CSAT"] = tabla["csat"].apply(valor_porcentaje)
-tabla["Muestras"] = tabla["csat_respuestas"].fillna(0).astype(int)
+tabla["Experiencias"] = tabla["csat_respuestas"].fillna(0).astype(int)
 desgloses = tabla.apply(
-    lambda fila: desglose_csat(fila["csat"], fila["Muestras"]),
+    lambda fila: desglose_csat(fila["csat"], fila["Experiencias"]),
     axis=1,
 )
 tabla["Positivas"] = desgloses.apply(lambda valor: valor[0])
 tabla["No positivas"] = desgloses.apply(lambda valor: valor[1])
 
-st.dataframe(
-    tabla[["Captura", "CSAT", "Positivas", "No positivas", "Muestras"]],
-    hide_index=True,
-    use_container_width=True,
-    column_config={
-        "Captura": st.column_config.TextColumn("Captura"),
-        "CSAT": st.column_config.TextColumn("CSAT"),
-        "Positivas": st.column_config.NumberColumn("Positivas", format="%d"),
-        "No positivas": st.column_config.NumberColumn(
-            "No positivas",
-            format="%d",
-        ),
-        "Muestras": st.column_config.NumberColumn("Muestras", format="%d"),
-    },
-)
-st.caption(
-    "Positivas y no positivas se derivan del porcentaje CSAT y del total "
-    "de respuestas informado por Medallia."
-)
+with st.expander("Bitácora", expanded=False):
+    st.dataframe(
+        tabla[
+            ["Señal", "CSAT", "Positivas", "No positivas", "Experiencias"]
+        ],
+        hide_index=True,
+        column_config={
+            "Señal": st.column_config.TextColumn("Señal"),
+            "CSAT": st.column_config.TextColumn("CSAT"),
+            "Positivas": st.column_config.NumberColumn(
+                "Positivas",
+                format="%d",
+            ),
+            "No positivas": st.column_config.NumberColumn(
+                "Otras",
+                format="%d",
+            ),
+            "Experiencias": st.column_config.NumberColumn(
+                "Experiencias",
+                format="%d",
+            ),
+        },
+        **ANCHO_STRETCH,
+    )
+    st.caption(
+        "Cada señal conserva la posición observada y las experiencias "
+        "que formaron ese momento del recorrido."
+    )
 
-with st.expander("Cuarto de San Alejo"):
-    st.caption("Histórico mensual")
+with st.expander("Otros rumbos", expanded=False):
+    if proyecciones.empty:
+        st.warning(
+            "No hay experiencias suficientes para calcular otros rumbos."
+        )
+    else:
+        filas_rumbos = []
+        for indice, rumbo in proyecciones.iterrows():
+            cantidad = (indice // 2) + 1
+            es_positivo = indice % 2 == 0
+            tipo_experiencia = (
+                "experiencia positiva"
+                if cantidad == 1 and es_positivo
+                else "experiencias positivas"
+                if es_positivo
+                else "otra experiencia"
+                if cantidad == 1
+                else "otras experiencias"
+            )
+            clase_punto = (
+                "route-dot-positive"
+                if es_positivo
+                else "route-dot-other"
+            )
+            puntos = (
+                f'<span class="route-dot {clase_punto}"></span>' * cantidad
+            )
+            nota = (
+                "El rumbo sube ligeramente."
+                if es_positivo
+                else "El recorrido baja un poco."
+            )
+            filas_rumbos.append(
+                f"""
+                <div class="route-row">
+                    <div>
+                        <div class="route-heading">
+                            <span class="route-name">
+                                +{cantidad} {tipo_experiencia}
+                            </span>
+                            <span class="route-dots">{puntos}</span>
+                        </div>
+                        <div class="route-note">{nota}</div>
+                    </div>
+                    <div class="route-value">
+                        {rumbo["CSAT proyectado"]:.1f}%
+                    </div>
+                </div>
+                """
+            )
+        st.markdown(
+            f'<div class="route-list">{"".join(filas_rumbos)}</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "Cada experiencia abre un rumbo posible desde la señal actual."
+        )
 
+with st.expander("Otras señales", expanded=False):
+    resolved_muestras = int(ultima.get("resolved_respuestas") or 0)
+    nps_muestras = int(ultima.get("nps_respuestas") or 0)
+
+    complementaria_1, complementaria_2 = st.columns(2)
+    with complementaria_1:
+        st.metric("Resolved", valor_porcentaje(ultima.get("resolved")))
+        st.caption(f"{resolved_muestras} experiencias de Resolved")
+
+    with complementaria_2:
+        st.metric(
+            "NPS",
+            "—" if pd.isna(ultima.get("nps")) else f"{ultima.get('nps'):.1f}",
+        )
+        st.caption(f"{nps_muestras} experiencias de NPS")
+
+    st.caption("Recorrido mensual")
     historico = (
         capturas.sort_values("timestamp_captura")
         .groupby("mes", as_index=False)
@@ -737,15 +873,12 @@ with st.expander("Cuarto de San Alejo"):
     historico["NPS"] = historico["nps"].apply(
         lambda valor: "—" if pd.isna(valor) else f"{valor:.1f}"
     )
-    historico["Muestras"] = historico["csat_respuestas"].fillna(0).astype(int)
-
-    st.dataframe(
-        historico[["Mes", "CSAT", "Muestras", "Resolved", "NPS"]],
-        hide_index=True,
-        use_container_width=True,
+    historico["Experiencias"] = (
+        historico["csat_respuestas"].fillna(0).astype(int)
     )
 
-st.caption(
-    "Fuente: MongoDB Atlas · Horario: Colombia · "
-    f"Consulta observada {datetime.now(ZONA_COLOMBIA):%d/%m/%Y %H:%M}"
-)
+    st.dataframe(
+        historico[["Mes", "CSAT", "Experiencias", "Resolved", "NPS"]],
+        hide_index=True,
+        **ANCHO_STRETCH,
+    )
