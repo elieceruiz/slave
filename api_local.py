@@ -8,6 +8,21 @@ import json
 app = FastAPI()
 
 
+@app.get("/")
+def root():
+    return {"service": "slave-api", "status": "online"}
+
+
+@app.head("/")
+def root_head():
+    return None
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/run")
 def run_pipeline():
     try:
@@ -37,7 +52,13 @@ async def gmail_webhook(request: Request):
         # --------------------------------------------------
         # 1. Obtener el cuerpo del request enviado por Pub/Sub
         # --------------------------------------------------
-        body = await request.json()
+        raw_body = await request.body()
+
+        if not raw_body:
+            print("Evento ignorado: body vacío")
+            return {"status": "ignored", "reason": "empty_body"}
+
+        body = json.loads(raw_body)
 
         # Estructura típica de Pub/Sub:
         # {
