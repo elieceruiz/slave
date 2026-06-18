@@ -3,10 +3,14 @@
 from googleapiclient.discovery import build
 from gmail_reader import get_gmail_creds
 
-creds = get_gmail_creds()
-service = build("gmail", "v1", credentials=creds)
 
-labels = service.users().labels().list(userId="me").execute()
+def listar_labels():
+    creds = get_gmail_creds()
+    service = build("gmail", "v1", credentials=creds)
+    labels = service.users().labels().list(userId="me").execute()
+    return labels.get("labels", [])
 
-for label in labels["labels"]:
-    print(label["name"], "→", label["id"])
+
+if __name__ == "__main__":
+    for label in listar_labels():
+        print(label["name"], "->", label["id"])

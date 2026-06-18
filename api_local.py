@@ -1,12 +1,31 @@
 # api_local.py
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import PlainTextResponse
+from activar_watch import activar_watch
+from config import get_env
+from label_id import listar_labels
 from run import PipelineStageError, ejecutar_pipeline
 import base64
 import json
 
 app = FastAPI()
+
+
+def validar_admin_token(x_admin_token: str | None = Header(default=None)):
+    admin_token = get_env("ADMIN_TOKEN")
+
+    if not admin_token:
+        raise HTTPException(
+            status_code=500,
+            detail="ADMIN_TOKEN no esta definido",
+        )
+
+    if x_admin_token != admin_token:
+        raise HTTPException(
+            status_code=401,
+            detail="admin token invalido",
+        )
 
 
 @app.get("/")
@@ -32,6 +51,24 @@ def robots_txt():
 @app.get("/favicon.ico")
 def favicon():
     return Response(status_code=204)
+
+
+@app.post("/admin/activar-watch")
+def admin_activar_watch(
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")
+):
+    validar_admin_token(x_admin_token)
+    response = activar_watch()
+    return {"status": "ok", "watch": response}
+
+
+@app.get("/admin/labels")
+def admin_labels(
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")
+):
+    validar_admin_token(x_admin_token)
+    labels = listar_labels()
+    return {"status": "ok", "labels": labels}
 
 
 @app.post("/run")

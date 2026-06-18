@@ -19,8 +19,9 @@ def activar_watch():
         }
     ).execute()
 
-    print("✅ Watch activado:")
+    print("Watch activado:")
     print(response)
+    return response
 
 
 if __name__ == "__main__":
