@@ -1,6 +1,7 @@
 # api_local.py
 
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse
 from run import ejecutar_pipeline
 import base64
 import json
@@ -21,6 +22,11 @@ def root_head():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots_txt():
+    return "User-agent: *\nDisallow: /\n"
 
 
 @app.post("/run")
