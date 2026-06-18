@@ -7,6 +7,7 @@
 import os
 import base64
 from datetime import datetime, timezone
+from time import perf_counter
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -23,6 +24,10 @@ from config import get_env
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly"
 ]
+
+
+def _duracion(inicio):
+    return f"{perf_counter() - inicio:.2f}s"
 
 
 # ==========================================================
@@ -113,28 +118,46 @@ def obtener_correos():
 
     creds = get_gmail_creds()
 
-    print("✓ Autenticación exitosa")
+    print("Autenticacion exitosa")
 
     # ======================================================
     # CONEXIÓN GMAIL
     # ======================================================
 
-    service = build(
-        "gmail",
-        "v1",
-        credentials=creds
-    )
+    print("[GMAIL] build service inicio")
+    inicio = perf_counter()
+    try:
+        service = build(
+            "gmail",
+            "v1",
+            credentials=creds
+        )
+        print(f"[GMAIL] build service OK en {_duracion(inicio)}")
+    except Exception as e:
+        print(f"[GMAIL] build service ERROR en {_duracion(inicio)} | {e}")
+        raise
 
     # ======================================================
     # BÚSQUEDA DE CORREOS
     # ======================================================
 
-    resultado = service.users().messages().list(
-        userId="me",
-        q='subject:"timestamp_captura:"'
-    ).execute()
-
-    mensajes = resultado.get("messages", [])
+    query_principal = 'subject:"timestamp_captura:"'
+    print(f"[GMAIL] query: {query_principal}")
+    print("[GMAIL] list inicio")
+    inicio = perf_counter()
+    try:
+        resultado = service.users().messages().list(
+            userId="me",
+            q=query_principal
+        ).execute()
+        mensajes = resultado.get("messages", [])
+        print(
+            f"[GMAIL] list OK en {_duracion(inicio)} "
+            f"| mensajes={len(mensajes)}"
+        )
+    except Exception as e:
+        print(f"[GMAIL] list ERROR en {_duracion(inicio)} | {e}")
+        raise
 
     modo_busqueda = "asunto timestamp_captura"
 
@@ -144,12 +167,25 @@ def obtener_correos():
 
     if len(mensajes) == 0:
 
-        resultado = service.users().messages().list(
-            userId="me",
-            q="label:slave"
-        ).execute()
+        print("[GMAIL] list principal sin mensajes | mensajes=0")
 
-        mensajes = resultado.get("messages", [])
+        query_fallback = "label:slave"
+        print(f"[GMAIL] query: {query_fallback}")
+        print("[GMAIL] list fallback inicio")
+        inicio = perf_counter()
+        try:
+            resultado = service.users().messages().list(
+                userId="me",
+                q=query_fallback
+            ).execute()
+            mensajes = resultado.get("messages", [])
+            print(
+                f"[GMAIL] list fallback OK en {_duracion(inicio)} "
+                f"| mensajes={len(mensajes)}"
+            )
+        except Exception as e:
+            print(f"[GMAIL] list fallback ERROR en {_duracion(inicio)} | {e}")
+            raise
 
         modo_busqueda = "etiqueta slave"
 
@@ -168,11 +204,24 @@ def obtener_correos():
 
     for i, mensaje in enumerate(mensajes, start=1):
 
-        detalle = service.users().messages().get(
-            userId="me",
-            id=mensaje["id"],
-            format="full"
-        ).execute()
+        total = len(mensajes)
+        mensaje_id = mensaje["id"]
+
+        print(f"[GMAIL] get {i}/{total} inicio id={mensaje_id}")
+        inicio = perf_counter()
+        try:
+            detalle = service.users().messages().get(
+                userId="me",
+                id=mensaje_id,
+                format="full"
+            ).execute()
+            print(f"[GMAIL] get {i}/{total} OK en {_duracion(inicio)}")
+        except Exception as e:
+            print(
+                f"[GMAIL] get {i}/{total} ERROR en {_duracion(inicio)} "
+                f"| id={mensaje_id} | {e}"
+            )
+            raise
 
         gmail_message_id = detalle["id"]
 
@@ -194,7 +243,22 @@ def obtener_correos():
             elif header["name"] == "Date":
                 fecha = header["value"]
 
-        contenido = extraer_texto(detalle["payload"])
+        print(f"[GMAIL] asunto {i}/{total}: {asunto}")
+        print(f"[GMAIL] fecha {i}/{total}: {fecha}")
+
+        inicio = perf_counter()
+        try:
+            contenido = extraer_texto(detalle["payload"])
+            print(
+                f"[GMAIL] contenido {i}/{total} OK en {_duracion(inicio)} "
+                f"| chars={len(contenido)}"
+            )
+        except Exception as e:
+            print(
+                f"[GMAIL] contenido {i}/{total} ERROR en {_duracion(inicio)} "
+                f"| id={gmail_message_id} | {e}"
+            )
+            raise
 
         print(f"[{i}]")
         print(f"ID     : {gmail_message_id}")
@@ -219,13 +283,13 @@ def obtener_correos():
 
                     archivo.write(contenido)
 
-                print("\n✓ Histórico creado")
+                print("\nHistorico creado")
 
             else:
-                print("\n✓ Histórico ya existe")
-                print("✓ Se omite creación")
+                print("\nHistorico ya existe")
+                print("Se omite creacion")
 
-            print(f"✓ Longitud: {len(contenido)} caracteres")
+            print(f"Longitud: {len(contenido)} caracteres")
 
         # ==================================================
         # CAPTURAS
@@ -249,11 +313,16 @@ def obtener_correos():
             "fecha_recepcion": fecha_recepcion,
             "contenido": contenido
         })
+        print(
+            f"[GMAIL] append {i}/{total} OK "
+            f"| gmail_message_id={gmail_message_id}"
+        )
 
     # ======================================================
     # RESUMEN FINAL
     # ======================================================
 
-    print(f"\n✓ Total correos procesados: {len(correos_procesados)}")
+    print(f"[GMAIL] total correos procesados={len(correos_procesados)}")
+    print(f"\nTotal correos procesados: {len(correos_procesados)}")
 
     return correos_procesados

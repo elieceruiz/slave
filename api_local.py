@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, Request
 from fastapi.responses import PlainTextResponse
-from run import ejecutar_pipeline
+from run import PipelineStageError, ejecutar_pipeline
 import base64
 import json
 
@@ -34,8 +34,18 @@ def run_pipeline():
     try:
         ejecutar_pipeline()
         return {"status": "ok"}
+    except PipelineStageError as e:
+        return {
+            "status": "error",
+            "stage": e.stage,
+            "detail": str(e.original_error),
+        }
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        return {
+            "status": "error",
+            "stage": "unknown",
+            "detail": str(e),
+        }
 
 
 # 🔥 NUEVO ENDPOINT (NO TOCAR LO DE ARRIBA)
