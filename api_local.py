@@ -1,6 +1,6 @@
 # api_local.py
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import PlainTextResponse
 from run import PipelineStageError, ejecutar_pipeline
 import base64
@@ -27,6 +27,11 @@ def health():
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots_txt():
     return "User-agent: *\nDisallow: /\n"
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return Response(status_code=204)
 
 
 @app.post("/run")
