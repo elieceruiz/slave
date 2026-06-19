@@ -267,6 +267,35 @@ def actualizar_estado_history(history_id, source=None):
 
     return obtener_estado_watch()
 
+
+def guardar_evento_webhook(
+    action,
+    history_id=None,
+    email=None,
+    reason=None,
+    pubsub_message_id=None,
+):
+    """Guarda la ultima decision tomada por /webhook para diagnostico operativo."""
+    estado = {
+        "last_webhook_at": datetime.now(timezone.utc),
+        "last_webhook_action": action,
+        "last_webhook_history_id": str(history_id) if history_id is not None else None,
+        "last_webhook_email": email,
+        "last_webhook_reason": reason,
+        "last_pubsub_message_id": pubsub_message_id,
+    }
+
+    state_collection.update_one(
+        {"_id": WATCH_STATE_ID},
+        {
+            "$set": estado,
+            "$setOnInsert": {"_id": WATCH_STATE_ID},
+        },
+        upsert=True,
+    )
+
+    return obtener_estado_watch()
+
 def obtener_ultimo(mes):
     return collection.find_one(
         {"mes": mes},

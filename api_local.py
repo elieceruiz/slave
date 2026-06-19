@@ -4,13 +4,31 @@ from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import PlainTextResponse
 from activar_watch import activar_watch
 from config import get_env
-from db import actualizar_estado_history, obtener_estado_watch
+from db import (
+    actualizar_estado_history,
+    guardar_evento_webhook,
+    obtener_estado_watch,
+)
 from label_id import listar_labels
 from run import PipelineStageError, ejecutar_pipeline, ejecutar_pipeline_incremental
 import base64
 import json
 
 app = FastAPI()
+
+
+def _history_ya_cubierto(event_history_id, start_history_id):
+    try:
+        return int(event_history_id) <= int(start_history_id)
+    except (TypeError, ValueError):
+        return False
+
+
+def _guardar_evento_webhook_seguro(**kwargs):
+    try:
+        guardar_evento_webhook(**kwargs)
+    except Exception as error:
+        print(f"[WEBHOOK] no se pudo guardar diagnostico | error={error}")
 
 
 def validar_admin_token(x_admin_token: str | None = Header(default=None)):
@@ -118,6 +136,10 @@ async def gmail_webhook(request: Request):
 
         if not raw_body:
             print("Evento ignorado: body vacío")
+            _guardar_evento_webhook_seguro(
+                action="ignored",
+                reason="empty_body",
+            )
             return {"status": "ignored", "reason": "empty_body"}
 
         body = json.loads(raw_body)
@@ -130,6 +152,7 @@ async def gmail_webhook(request: Request):
         # }
 
         message = body.get("message", {})
+        pubsub_message_id = message.get("messageId")
 
         # --------------------------------------------------
         # 2. Extraer la data codificada en base64
@@ -154,13 +177,40 @@ async def gmail_webhook(request: Request):
             if "historyId" in payload:
 
                 event_history_id = payload.get("historyId")
+                email = payload.get("emailAddress")
                 estado_watch = obtener_estado_watch() or {}
                 start_history_id = estado_watch.get("last_history_id")
+
+                if start_history_id and _history_ya_cubierto(
+                    event_history_id,
+                    start_history_id,
+                ):
+                    print(
+                        "[WEBHOOK] evento ignorado | historyId ya cubierto "
+                        f"| startHistoryId={start_history_id}"
+                    )
+                    _guardar_evento_webhook_seguro(
+                        action="ignored",
+                        history_id=event_history_id,
+                        email=email,
+                        reason="history_already_covered",
+                        pubsub_message_id=pubsub_message_id,
+                    )
+                    return {
+                        "status": "ignored",
+                        "reason": "history_already_covered",
+                    }
 
                 if start_history_id:
                     print(
                         "[WEBHOOK] evento valido | ejecutando pipeline incremental "
                         f"| startHistoryId={start_history_id}"
+                    )
+                    _guardar_evento_webhook_seguro(
+                        action="incremental_started",
+                        history_id=event_history_id,
+                        email=email,
+                        pubsub_message_id=pubsub_message_id,
                     )
 
                     try:
@@ -168,31 +218,73 @@ async def gmail_webhook(request: Request):
                             start_history_id,
                             event_history_id,
                         )
+                        _guardar_evento_webhook_seguro(
+                            action="incremental_completed",
+                            history_id=event_history_id,
+                            email=email,
+                            pubsub_message_id=pubsub_message_id,
+                        )
                     except Exception as error:
                         print(
                             "[WEBHOOK] incremental fallo | fallback pipeline completo "
                             f"| error={error}"
+                        )
+                        _guardar_evento_webhook_seguro(
+                            action="fallback_started",
+                            history_id=event_history_id,
+                            email=email,
+                            reason=str(error),
+                            pubsub_message_id=pubsub_message_id,
                         )
                         ejecutar_pipeline()
                         actualizar_estado_history(
                             event_history_id,
                             source="webhook_fallback",
                         )
+                        _guardar_evento_webhook_seguro(
+                            action="fallback_completed",
+                            history_id=event_history_id,
+                            email=email,
+                            pubsub_message_id=pubsub_message_id,
+                        )
                 else:
                     print("[WEBHOOK] sin cursor previo | ejecutando pipeline completo")
+                    _guardar_evento_webhook_seguro(
+                        action="full_started",
+                        history_id=event_history_id,
+                        email=email,
+                        reason="no_cursor",
+                        pubsub_message_id=pubsub_message_id,
+                    )
                     ejecutar_pipeline()
                     actualizar_estado_history(
                         event_history_id,
                         source="webhook_full_no_cursor",
                     )
+                    _guardar_evento_webhook_seguro(
+                        action="full_completed",
+                        history_id=event_history_id,
+                        email=email,
+                        pubsub_message_id=pubsub_message_id,
+                    )
 
             else:
                 # Evento raro o incompleto → ignoramos
                 print("[WEBHOOK] evento ignorado | sin historyId")
+                _guardar_evento_webhook_seguro(
+                    action="ignored",
+                    reason="missing_history_id",
+                    pubsub_message_id=pubsub_message_id,
+                )
 
         else:
             # Caso en que Pub/Sub manda mensaje sin data
             print("[WEBHOOK] evento ignorado | sin data")
+            _guardar_evento_webhook_seguro(
+                action="ignored",
+                reason="missing_data",
+                pubsub_message_id=pubsub_message_id,
+            )
 
     except Exception as e:
         # --------------------------------------------------
