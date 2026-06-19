@@ -144,22 +144,26 @@ async def gmail_webhook(request: Request):
             # Convertir a JSON
             payload = json.loads(decoded)
 
-            print("📩 Evento Gmail recibido:", payload)
+            print(
+                "[WEBHOOK] evento Gmail recibido "
+                f"| historyId={payload.get('historyId')} "
+                f"| email={payload.get('emailAddress')}"
+            )
 
             if "historyId" in payload:
 
-                print("✅ Evento válido → ejecutando pipeline")
+                print("[WEBHOOK] evento valido | ejecutando pipeline")
 
                 # Pub/Sub solo avisa que hubo cambios; el pipeline consulta Gmail.
                 ejecutar_pipeline()
 
             else:
                 # Evento raro o incompleto → ignoramos
-                print("⛔ Evento ignorado (sin historyId)")
+                print("[WEBHOOK] evento ignorado | sin historyId")
 
         else:
             # Caso en que Pub/Sub manda mensaje sin data
-            print("⚠️ Evento sin data")
+            print("[WEBHOOK] evento ignorado | sin data")
 
     except Exception as e:
         # --------------------------------------------------
@@ -168,7 +172,7 @@ async def gmail_webhook(request: Request):
         # Importante: NO romper el endpoint
         # porque Pub/Sub reintenta si falla
 
-        print("⚠️ Error parseando Pub/Sub:", e)
+        print("[WEBHOOK] error parseando Pub/Sub:", e)
 
     # --------------------------------------------------
     # 7. RESPUESTA A PUB/SUB

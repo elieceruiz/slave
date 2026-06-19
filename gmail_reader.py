@@ -210,8 +210,6 @@ def obtener_correos():
 
         total = len(mensajes)
         mensaje_id = mensaje["id"]
-
-        print(f"[GMAIL] get {i}/{total} inicio id={mensaje_id}")
         inicio = perf_counter()
         try:
             detalle = service.users().messages().get(
@@ -219,7 +217,7 @@ def obtener_correos():
                 id=mensaje_id,
                 format="full"
             ).execute()
-            print(f"[GMAIL] get {i}/{total} OK en {_duracion(inicio)}")
+            duracion_get = _duracion(inicio)
         except Exception as e:
             print(
                 f"[GMAIL] get {i}/{total} ERROR en {_duracion(inicio)} "
@@ -247,28 +245,24 @@ def obtener_correos():
 
             elif header["name"] == "Date":
                 fecha = header["value"]
-
-        print(f"[GMAIL] asunto {i}/{total}: {asunto}")
-        print(f"[GMAIL] fecha {i}/{total}: {fecha}")
-
         inicio = perf_counter()
         try:
             contenido = extraer_texto(detalle["payload"])
-            print(
-                f"[GMAIL] contenido {i}/{total} OK en {_duracion(inicio)} "
-                f"| chars={len(contenido)}"
-            )
+            duracion_contenido = _duracion(inicio)
         except Exception as e:
             print(
                 f"[GMAIL] contenido {i}/{total} ERROR en {_duracion(inicio)} "
                 f"| id={gmail_message_id} | {e}"
             )
             raise
-
-        print(f"[{i}]")
-        print(f"ID     : {gmail_message_id}")
-        print(f"Asunto: {asunto}")
-        print(f"Fecha : {fecha}")
+        print(
+            f"[GMAIL] correo {i}/{total} OK "
+            f"| id={gmail_message_id} "
+            f"| asunto={asunto} "
+            f"| get={duracion_get} "
+            f"| contenido={duracion_contenido} "
+            f"| chars={len(contenido)}"
+        )
 
         # ==================================================
         # HISTÓRICO
@@ -301,11 +295,7 @@ def obtener_correos():
         # ==================================================
 
         else:
-
-            print("\n--- PREVIEW DEL CONTENIDO ---\n")
-            print(contenido[:1000])
-
-        print("\n" + "=" * 80 + "\n")
+            pass
 
         # ==================================================
         # OUTPUT PARA PARSER
@@ -318,10 +308,6 @@ def obtener_correos():
             "fecha_recepcion": fecha_recepcion,
             "contenido": contenido
         })
-        print(
-            f"[GMAIL] append {i}/{total} OK "
-            f"| gmail_message_id={gmail_message_id}"
-        )
 
     # ======================================================
     # RESUMEN FINAL
