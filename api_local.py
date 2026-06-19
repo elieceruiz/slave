@@ -4,6 +4,7 @@ from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import PlainTextResponse
 from activar_watch import activar_watch
 from config import get_env
+from db import obtener_estado_watch
 from label_id import listar_labels
 from run import PipelineStageError, ejecutar_pipeline
 import base64
@@ -28,31 +29,25 @@ def validar_admin_token(x_admin_token: str | None = Header(default=None)):
             detail="admin token invalido",
         )
 
-
 @app.get("/")
 def root():
     return {"service": "slave-api", "status": "online"}
-
 
 @app.head("/")
 def root_head():
     return None
 
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots_txt():
     return "User-agent: *\nDisallow: /\n"
 
-
 @app.get("/favicon.ico")
 def favicon():
     return Response(status_code=204)
-
 
 @app.post("/admin/activar-watch")
 def admin_activar_watch(
@@ -63,6 +58,13 @@ def admin_activar_watch(
     response = activar_watch()
     return {"status": "ok", "watch": response}
 
+@app.get("/admin/watch-state")
+def admin_watch_state(
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")
+):
+    # Expone el ultimo estado guardado del Gmail Watch sin renovar nada.
+    validar_admin_token(x_admin_token)
+    return {"status": "ok", "watch_state": obtener_estado_watch()}
 
 @app.get("/admin/labels")
 def admin_labels(
@@ -72,7 +74,6 @@ def admin_labels(
     validar_admin_token(x_admin_token)
     labels = listar_labels()
     return {"status": "ok", "labels": labels}
-
 
 @app.post("/run")
 def run_pipeline():

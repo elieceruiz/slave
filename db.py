@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 from pymongo import MongoClient
@@ -19,6 +20,9 @@ if not MONGO_URI:
 client = MongoClient(MONGO_URI)
 db = client["slave"]
 collection = db["capturas"]
+state_collection = db["state"]
+
+WATCH_STATE_ID = "gmail_watch"
 
 
 # Una captura cambia semanticamente cuando cambia el mes o cualquiera de sus
@@ -189,6 +193,54 @@ def insertar_documentos(documentos):
 
     return resumen
 
+
+def _watch_expiration_datetime(expiration):
+    if not expiration:
+        return None
+
+    try:
+        return datetime.fromtimestamp(int(expiration) / 1000, tz=timezone.utc)
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def guardar_estado_watch(response, topic_name=None):
+    """Persiste el ultimo estado conocido de Gmail Watch.
+
+    Esta coleccion no participa en las capturas CSAT; solo deja trazabilidad
+    operativa para saber que historyId entrego Gmail y cuando vence el watch.
+    """
+    history_id = response.get("historyId") if response else None
+    expiration = response.get("expiration") if response else None
+
+    estado = {
+        "last_history_id": str(history_id) if history_id is not None else None,
+        "watch_expiration": str(expiration) if expiration is not None else None,
+        "watch_expiration_at": _watch_expiration_datetime(expiration),
+        "watch_renewed_at": datetime.now(timezone.utc),
+    }
+
+    if topic_name:
+        estado["topic_name"] = topic_name
+
+    state_collection.update_one(
+        {"_id": WATCH_STATE_ID},
+        {
+            "$set": estado,
+            "$setOnInsert": {"_id": WATCH_STATE_ID},
+        },
+        upsert=True,
+    )
+
+    return {"_id": WATCH_STATE_ID, **estado}
+
+
+def obtener_estado_watch():
+    estado = state_collection.find_one(
+        {"_id": WATCH_STATE_ID},
+        {"_id": 0},
+    )
+    return estado
 
 def obtener_ultimo(mes):
     return collection.find_one(

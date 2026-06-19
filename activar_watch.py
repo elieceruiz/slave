@@ -2,6 +2,7 @@
 
 from googleapiclient.discovery import build
 from gmail_reader import get_gmail_creds
+from db import guardar_estado_watch
 
 # Debe coincidir con el topic autorizado para Gmail Push en Pub/Sub.
 TOPIC_NAME = "projects/slxvery/topics/gmail-events"
@@ -21,8 +22,12 @@ def activar_watch():
     ).execute()
 
     # Gmail devuelve historyId y expiration; expiration permite renovar a tiempo.
+    estado = guardar_estado_watch(response, TOPIC_NAME)
+
     print("Watch activado:")
     print(response)
+    print("Estado watch guardado:")
+    print(estado)
     return response
 
 
