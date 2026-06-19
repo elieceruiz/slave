@@ -114,6 +114,7 @@ def insertar_documentos(documentos):
 
     for documento in documentos:
         doc = dict(documento)
+        # La key semantica hace que correos distintos con la misma captura no dupliquen.
         captura_key = generar_captura_key(doc)
         doc["captura_key"] = captura_key
 

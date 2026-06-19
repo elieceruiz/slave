@@ -8,6 +8,7 @@ from db import insertar_documentos, crear_indice
 
 
 class PipelineStageError(Exception):
+    # Permite que /run responda que etapa fallo sin esconder la excepcion real.
     def __init__(self, stage, original_error):
         self.stage = stage
         self.original_error = original_error
@@ -37,9 +38,7 @@ def main():
     print("INICIANDO PIPELINE SLAVE")
     print("==============================\n")
 
-    # ----------------------------
-    # 1. Índice (seguro)
-    # ----------------------------
+    # Mongo es la ultima defensa de idempotencia; si el indice falla se registra.
     print("Verificando indice...")
 
     inicio = perf_counter()
@@ -52,9 +51,7 @@ def main():
             f"| {e} | continuando=True"
         )
 
-    # ----------------------------
-    # 2. OBTENER CORREOS (🔥 NUEVO)
-    # ----------------------------
+    # Gmail ya fue disparado por Pub/Sub; aqui se lee el estado actual del buzon.
     print("\nObteniendo correos...")
     print("[RUN] obtener_correos inicio")
 
@@ -69,9 +66,7 @@ def main():
         print(f"[RUN] obtener_correos ERROR en {_duracion(inicio)} | {e}")
         raise PipelineStageError("obtener_correos", e) from e
 
-    # ----------------------------
-    # 3. Parser
-    # ----------------------------
+    # El parser transforma Markdown de Medallia en documentos persistibles.
     print("\nParseando correos...")
 
     inicio = perf_counter()
@@ -93,9 +88,7 @@ def main():
         print(f"[RUN] completo en {_duracion(inicio_total)}")
         return
 
-    # ----------------------------
-    # 4. Mongo
-    # ----------------------------
+    # La persistencia decide insertados, duplicados semanticos y documentos legacy.
     print("\nInsertando en Mongo...")
 
     inicio = perf_counter()

@@ -39,6 +39,7 @@ def get_gmail_creds():
     refresh_token = get_env("GMAIL_REFRESH_TOKEN")
 
     if refresh_token:
+        # En Render y en local parametrizado se evita token.json y navegador OAuth.
         return Credentials(
             None,
             refresh_token=refresh_token,
@@ -51,6 +52,7 @@ def get_gmail_creds():
     creds = None
 
     if os.path.exists("token.json"):
+        # Fallback local para desarrollo; no debe existir como secreto en GitHub.
         creds = Credentials.from_authorized_user_file(
             "token.json",
             SCOPES
@@ -141,6 +143,7 @@ def obtener_correos():
     # BÚSQUEDA DE CORREOS
     # ======================================================
 
+    # Esta prioridad de lectura no dispara Render; el disparo viene del Watch.
     query_principal = 'subject:"timestamp_captura:"'
     print(f"[GMAIL] query: {query_principal}")
     print("[GMAIL] list inicio")
@@ -169,6 +172,7 @@ def obtener_correos():
 
         print("[GMAIL] list principal sin mensajes | mensajes=0")
 
+        # Fallback operativo: si no hay asunto nuevo, procesa lo etiquetado slave.
         query_fallback = "label:slave"
         print(f"[GMAIL] query: {query_fallback}")
         print("[GMAIL] list fallback inicio")
@@ -225,6 +229,7 @@ def obtener_correos():
 
         gmail_message_id = detalle["id"]
 
+        # internalDate es la recepcion real en Gmail, mas confiable que el header Date.
         fecha_recepcion = datetime.fromtimestamp(
             int(detalle["internalDate"]) / 1000,
             tz=timezone.utc

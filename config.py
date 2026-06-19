@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 def get_env(key: str):
 
-    # 1. Streamlit Cloud
+    # Precedencia: secretos administrados por plataforma antes que .env local.
     try:
         import streamlit as st
         if key in st.secrets:
@@ -13,6 +13,5 @@ def get_env(key: str):
     except:
         pass
 
-    # 2. Local (.env)
     load_dotenv()
     return os.getenv(key)

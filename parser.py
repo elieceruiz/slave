@@ -34,6 +34,7 @@ ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
 def obtener_timestamp(asunto, fecha_correo, fecha_recepcion=None):
 
+    # Prioridad operativa: recepcion real Gmail > header Date > subject legado.
     if fecha_recepcion:
         return fecha_recepcion
 
@@ -60,6 +61,7 @@ def obtener_timestamp(asunto, fecha_correo, fecha_recepcion=None):
 
 def extraer_metricas(texto):
 
+    # Los reportes llegan como Markdown de Medallia; DOTALL cubre saltos de linea.
     def buscar(pattern):
         match = re.search(pattern, texto, re.DOTALL)
         return float(match.group(1)) if match else None

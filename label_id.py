@@ -5,6 +5,7 @@ from gmail_reader import get_gmail_creds
 
 
 def listar_labels():
+    # Diagnostico operativo: confirma que "slave" siga apuntando al labelId esperado.
     creds = get_gmail_creds()
     service = build("gmail", "v1", credentials=creds)
     labels = service.users().labels().list(userId="me").execute()

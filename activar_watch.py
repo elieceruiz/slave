@@ -3,7 +3,7 @@
 from googleapiclient.discovery import build
 from gmail_reader import get_gmail_creds
 
-# 👇 TU TOPIC
+# Debe coincidir con el topic autorizado para Gmail Push en Pub/Sub.
 TOPIC_NAME = "projects/slxvery/topics/gmail-events"
 
 def activar_watch():
@@ -14,11 +14,13 @@ def activar_watch():
     response = service.users().watch(
         userId="me",
         body={
-            "labelIds": ["Label_4407997602573703894"],  # 👈 SOLO WATCH PARA ESTE LABEL
+            # Label_4407997602573703894 corresponde a la etiqueta Gmail "slave".
+            "labelIds": ["Label_4407997602573703894"],
             "topicName": TOPIC_NAME
         }
     ).execute()
 
+    # Gmail devuelve historyId y expiration; expiration permite renovar a tiempo.
     print("Watch activado:")
     print(response)
     return response

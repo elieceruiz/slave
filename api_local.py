@@ -13,6 +13,7 @@ app = FastAPI()
 
 
 def validar_admin_token(x_admin_token: str | None = Header(default=None)):
+    # Protege acciones operativas; no es autenticacion de usuarios finales.
     admin_token = get_env("ADMIN_TOKEN")
 
     if not admin_token:
@@ -57,6 +58,7 @@ def favicon():
 def admin_activar_watch(
     x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")
 ):
+    # Renueva Gmail Watch desde Render, donde viven las credenciales operativas.
     validar_admin_token(x_admin_token)
     response = activar_watch()
     return {"status": "ok", "watch": response}
@@ -66,6 +68,7 @@ def admin_activar_watch(
 def admin_labels(
     x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")
 ):
+    # Permite verificar el labelId real de Gmail sin depender del entorno local.
     validar_admin_token(x_admin_token)
     labels = listar_labels()
     return {"status": "ok", "labels": labels}
@@ -141,35 +144,13 @@ async def gmail_webhook(request: Request):
             # Convertir a JSON
             payload = json.loads(decoded)
 
-            # Ejemplo de payload:
-            # {
-            #   "emailAddress": "...",
-            #   "historyId": "123456"
-            # }
-
             print("📩 Evento Gmail recibido:", payload)
-
-            # --------------------------------------------------
-            # 4. VALIDACIÓN MÍNIMA DEL EVENTO
-            # --------------------------------------------------
-            # Gmail SIEMPRE envía "historyId" cuando hay cambios reales
-            # (nuevo correo, etiqueta, etc.)
 
             if "historyId" in payload:
 
                 print("✅ Evento válido → ejecutando pipeline")
 
-                # --------------------------------------------------
-                # 5. DISPARAR EL PIPELINE
-                # --------------------------------------------------
-                # Aquí NO procesamos directamente el correo.
-                # Solo llamamos al sistema principal que:
-                #   - consulta Gmail
-                #   - filtra por label "slave"
-                #   - parsea
-                #   - inserta en Mongo
-                #
-                # Esto evita duplicar lógica aquí.
+                # Pub/Sub solo avisa que hubo cambios; el pipeline consulta Gmail.
                 ejecutar_pipeline()
 
             else:

@@ -398,6 +398,7 @@ st.markdown(
 
 @st.cache_resource
 def obtener_coleccion():
+    # Faro 80 solo observa Mongo; la escritura ocurre en el pipeline de Render.
     load_dotenv()
     mongo_uri = os.getenv("MONGO_URI")
 
@@ -415,6 +416,7 @@ def obtener_coleccion():
 
 @st.cache_data(ttl=60)
 def cargar_capturas():
+    # El TTL evita consultas constantes; la pagina se actualiza en cada rerun.
     campos = {
         "_id": 0,
         "timestamp_captura": 1,
@@ -660,6 +662,7 @@ puntos_experiencias = (
 
 st.markdown(
     f"""
+    <!-- Portada silenciosa: orienta sin controles manuales. -->
     <div class="faro-header">
         <div class="faro-brand">FARO 80</div>
         <div class="faro-signal">
@@ -723,6 +726,7 @@ st.markdown(
 )
 
 st.divider()
+# La travesia aparece primero para mantener la narrativa de recorrido.
 st.subheader(f"Travesía de {nombre_mes(mes_actual)}")
 st.caption(
     f"{len(capturas_mes)} "
@@ -757,6 +761,7 @@ tabla["Positivas"] = desgloses.apply(lambda valor: valor[0])
 tabla["No positivas"] = desgloses.apply(lambda valor: valor[1])
 
 with st.expander("Bitácora", expanded=False):
+    # Detalle tecnico plegado: disponible sin competir con la portada.
     st.dataframe(
         tabla[
             ["Señal", "CSAT", "Positivas", "No positivas", "Experiencias"]
@@ -786,6 +791,7 @@ with st.expander("Bitácora", expanded=False):
     )
 
 with st.expander("Otros rumbos", expanded=False):
+    # Escenarios compactos; los calculos vienen de la misma tabla de proyecciones.
     if proyecciones.empty:
         st.warning(
             "No hay experiencias suficientes para calcular otros rumbos."
@@ -835,6 +841,7 @@ with st.expander("Otros rumbos", expanded=False):
         )
 
 with st.expander("Otras señales", expanded=False):
+    # Resolved, NPS e historico quedan como contexto secundario.
     resolved_muestras = int(ultima.get("resolved_respuestas") or 0)
     nps_muestras = int(ultima.get("nps_respuestas") or 0)
 
