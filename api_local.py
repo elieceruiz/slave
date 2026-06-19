@@ -4,9 +4,9 @@ from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import PlainTextResponse
 from activar_watch import activar_watch
 from config import get_env
-from db import obtener_estado_watch
+from db import actualizar_estado_history, obtener_estado_watch
 from label_id import listar_labels
-from run import PipelineStageError, ejecutar_pipeline
+from run import PipelineStageError, ejecutar_pipeline, ejecutar_pipeline_incremental
 import base64
 import json
 
@@ -153,10 +153,38 @@ async def gmail_webhook(request: Request):
 
             if "historyId" in payload:
 
-                print("[WEBHOOK] evento valido | ejecutando pipeline")
+                event_history_id = payload.get("historyId")
+                estado_watch = obtener_estado_watch() or {}
+                start_history_id = estado_watch.get("last_history_id")
 
-                # Pub/Sub solo avisa que hubo cambios; el pipeline consulta Gmail.
-                ejecutar_pipeline()
+                if start_history_id:
+                    print(
+                        "[WEBHOOK] evento valido | ejecutando pipeline incremental "
+                        f"| startHistoryId={start_history_id}"
+                    )
+
+                    try:
+                        ejecutar_pipeline_incremental(
+                            start_history_id,
+                            event_history_id,
+                        )
+                    except Exception as error:
+                        print(
+                            "[WEBHOOK] incremental fallo | fallback pipeline completo "
+                            f"| error={error}"
+                        )
+                        ejecutar_pipeline()
+                        actualizar_estado_history(
+                            event_history_id,
+                            source="webhook_fallback",
+                        )
+                else:
+                    print("[WEBHOOK] sin cursor previo | ejecutando pipeline completo")
+                    ejecutar_pipeline()
+                    actualizar_estado_history(
+                        event_history_id,
+                        source="webhook_full_no_cursor",
+                    )
 
             else:
                 # Evento raro o incompleto → ignoramos

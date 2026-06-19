@@ -2,9 +2,9 @@
 
 from time import perf_counter
 
-from gmail_reader import obtener_correos
+from gmail_reader import obtener_correos, obtener_correos_desde_history
 from parser import parsear_correos
-from db import insertar_documentos, crear_indice
+from db import insertar_documentos, crear_indice, actualizar_estado_history
 
 
 class PipelineStageError(Exception):
@@ -29,6 +29,79 @@ def ejecutar_pipeline():
 # ==========================================================
 # TU LÓGICA ORIGINAL (INTACTA)
 # ==========================================================
+
+def ejecutar_pipeline_incremental(start_history_id, event_history_id):
+    inicio_total = perf_counter()
+
+    print("[RUN] inicio incremental")
+    print(
+        "[RUN] history cursor "
+        f"| startHistoryId={start_history_id} "
+        f"| eventHistoryId={event_history_id}"
+    )
+
+    try:
+        if int(event_history_id) <= int(start_history_id):
+            print("[RUN] incremental omitido | evento ya cubierto")
+            return
+    except (TypeError, ValueError):
+        pass
+
+    print("Verificando indice...")
+    inicio = perf_counter()
+    try:
+        crear_indice()
+        print(f"[RUN] crear_indice OK en {_duracion(inicio)}")
+    except Exception as e:
+        print(
+            f"[RUN] crear_indice ERROR en {_duracion(inicio)} "
+            f"| {e} | continuando=True"
+        )
+
+    print("[RUN] obtener_correos_history inicio")
+    inicio = perf_counter()
+    try:
+        correos = obtener_correos_desde_history(
+            start_history_id,
+            event_history_id,
+        )
+        print(
+            f"[RUN] obtener_correos_history OK en {_duracion(inicio)} "
+            f"| correos={len(correos)}"
+        )
+    except Exception as e:
+        print(f"[RUN] obtener_correos_history ERROR en {_duracion(inicio)} | {e}")
+        raise PipelineStageError("obtener_correos_history", e) from e
+
+    print("[RUN] parsear_correos inicio")
+    inicio = perf_counter()
+    try:
+        datos = parsear_correos(correos)
+        print(
+            f"[RUN] parsear_correos OK en {_duracion(inicio)} "
+            f"| docs={len(datos)}"
+        )
+    except Exception as e:
+        print(f"[RUN] parsear_correos ERROR en {_duracion(inicio)} | {e}")
+        raise PipelineStageError("parsear_correos", e) from e
+
+    if datos:
+        print("[RUN] insertar_documentos inicio")
+        inicio = perf_counter()
+        try:
+            insertar_documentos(datos)
+            print(f"[RUN] insertar_documentos OK en {_duracion(inicio)}")
+        except Exception as e:
+            print(f"[RUN] insertar_documentos ERROR en {_duracion(inicio)} | {e}")
+            raise PipelineStageError("insertar_documentos", e) from e
+    else:
+        print("[RUN] insertar_documentos omitido | docs=0")
+
+    actualizar_estado_history(event_history_id, source="webhook_incremental")
+    print(f"[RUN] history cursor actualizado | last_history_id={event_history_id}")
+    print(f"[RUN] incremental completo en {_duracion(inicio_total)}")
+
+
 def main():
 
     inicio_total = perf_counter()

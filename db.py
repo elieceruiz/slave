@@ -242,6 +242,31 @@ def obtener_estado_watch():
     )
     return estado
 
+
+def actualizar_estado_history(history_id, source=None):
+    """Avanza el cursor operativo de Gmail History despues de procesar un evento."""
+    if history_id is None:
+        return obtener_estado_watch()
+
+    estado = {
+        "last_history_id": str(history_id),
+        "last_history_updated_at": datetime.now(timezone.utc),
+    }
+
+    if source:
+        estado["last_history_source"] = source
+
+    state_collection.update_one(
+        {"_id": WATCH_STATE_ID},
+        {
+            "$set": estado,
+            "$setOnInsert": {"_id": WATCH_STATE_ID},
+        },
+        upsert=True,
+    )
+
+    return obtener_estado_watch()
+
 def obtener_ultimo(mes):
     return collection.find_one(
         {"mes": mes},
