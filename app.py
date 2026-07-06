@@ -548,7 +548,7 @@ def mostrar_login_google(auth_url):
             <div class="auth-title">Entrar con Google</div>
             <div class="auth-copy">
                 Google confirma la identidad antes de abrir Faro 80;
-                la app no recibe tu contrasena.
+                la app no recibe tu contraseña.
             </div>
         </div>
         """,
