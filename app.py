@@ -737,8 +737,15 @@ def obtener_query_param(nombre):
 
 
 def mostrar_login_google(auth_url):
-    auth_url_segura = html.escape(auth_url, quote=True)
-    auth_url_js = json.dumps(auth_url)
+    params = urllib.parse.parse_qsl(
+        urllib.parse.urlsplit(auth_url).query,
+        keep_blank_values=True,
+    )
+    campos_ocultos = "".join(
+        f'<input type="hidden" name="{html.escape(nombre, quote=True)}" '
+        f'value="{html.escape(valor, quote=True)}">'
+        for nombre, valor in params
+    )
     st.markdown(
         """
         <div class="faro-header">
@@ -757,13 +764,10 @@ def mostrar_login_google(auth_url):
     )
     components.html(
         f"""
-        <button id="google-login" type="button">Entrar con Google</button>
-        <script>
-        const authUrl = {auth_url_js};
-        document.getElementById("google-login").addEventListener("click", () => {{
-            window.top.location.href = authUrl;
-        }});
-        </script>
+        <form action="{GOOGLE_AUTH_URL}" method="get" target="_top">
+            {campos_ocultos}
+            <button id="google-login" type="submit">Entrar con Google</button>
+        </form>
         <style>
         body {{
             background: transparent;
@@ -792,9 +796,7 @@ def mostrar_login_google(auth_url):
         """,
         height=58,
     )
-    st.caption(f"Si el botón no responde, abre este enlace: {auth_url_segura}")
     st.stop()
-
 
 def requerir_login_google():
     client_id = obtener_config("GOOGLE_CLIENT_ID")
