@@ -665,7 +665,7 @@ def mostrar_control_sesion():
     st.markdown(
         '<div class="session-bar">'
         '<div class="session-pill">Sesión activa</div>'
-        '<a class="session-logout" href="?logout=1" target="_self">Cerrar sesión</a>'
+        '<a class="session-logout" href="?logout=1" target="_top">Cerrar sesión</a>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -749,7 +749,7 @@ def mostrar_login_google(auth_url):
                 Google confirma la identidad antes de abrir Faro 80;
                 la app no recibe tu contraseña.
             </div>
-            <a class="auth-login-button" href="{auth_url_segura}" target="_self">
+            <a class="auth-login-button" href="{auth_url_segura}" target="_top">
                 Entrar con Google
             </a>
         </div>
