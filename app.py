@@ -447,35 +447,20 @@ st.markdown(
         white-space: nowrap;
     }
 
-    .session-action-anchor {
-        display: none;
-    }
-
-    div[data-testid="stMarkdownContainer"]:has(.session-action-anchor)
-    + div[data-testid="stButton"] {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: -2.55rem;
-        margin-bottom: 0.55rem;
-    }
-
-    div[data-testid="stMarkdownContainer"]:has(.session-action-anchor)
-    + div[data-testid="stButton"] button {
+    .session-logout {
         background: rgba(255, 255, 255, 0.035);
         border: 1px solid rgba(255, 255, 255, 0.10);
         border-radius: 999px;
-        color: #9299a8;
+        color: #9299a8 !important;
         font-size: 0.76rem;
-        min-height: 0;
-        padding: 0.32rem 0.65rem;
+        padding: 0.38rem 0.65rem;
+        text-decoration: none !important;
         white-space: nowrap;
-        width: auto;
     }
 
-    div[data-testid="stMarkdownContainer"]:has(.session-action-anchor)
-    + div[data-testid="stButton"] button:hover {
+    .session-logout:hover {
         border-color: rgba(242, 185, 93, 0.45);
-        color: #f2b95d;
+        color: #f2b95d !important;
     }
 
     @media (max-width: 390px) {
@@ -612,12 +597,10 @@ def mostrar_control_sesion():
     st.markdown(
         '<div class="session-bar">'
         '<div class="session-pill">Sesión activa</div>'
-        '</div>'
-        '<div class="session-action-anchor"></div>',
+        '<a class="session-logout" href="?logout=1">Cerrar sesión</a>'
+        '</div>',
         unsafe_allow_html=True,
     )
-    if st.button("Cerrar sesión", key="logout_button"):
-        cerrar_sesion()
 
 def validar_oauth_state(state, cookie_secret):
     try:
@@ -729,6 +712,9 @@ def requerir_login_google():
             + ", ".join(faltantes)
         )
         st.stop()
+
+    if obtener_query_param("logout") == "1":
+        cerrar_sesion()
 
     usuario = st.session_state.get("usuario_google")
     if usuario:
