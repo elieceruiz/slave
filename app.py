@@ -9,8 +9,10 @@ import secrets as token_secrets
 import time
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+import extra_streamlit_components as stx
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
@@ -24,6 +26,8 @@ APP_BASE_URL_DEFAULT = "https://slavxx.streamlit.app"
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 OAUTH_STATE_TTL_SECONDS = 600
+SESSION_COOKIE_NAME = "faro80_session"
+SESSION_COOKIE_DAYS = 7
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 VERSION_STREAMLIT = tuple(
     int(parte)
@@ -421,6 +425,20 @@ st.markdown(
         margin-bottom: 0.8rem;
     }
 
+    .session-pill {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 999px;
+        color: #9299a8;
+        display: inline-flex;
+        font-size: 0.76rem;
+        gap: 0.35rem;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.55rem;
+        padding: 0.38rem 0.65rem;
+    }
+
     @media (max-width: 390px) {
         .pulse-chip {
             padding: 0.55rem;
@@ -430,6 +448,9 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+cookie_manager = stx.CookieManager()
 
 
 def obtener_config(nombre, default=None):
@@ -471,6 +492,93 @@ def crear_oauth_state(cookie_secret):
     ).digest()
     return f"{payload_b64}.{_base64_urlsafe(firma)}"
 
+
+def crear_cookie_sesion(usuario, cookie_secret):
+    payload = {
+        "email": usuario.get("email"),
+        "name": usuario.get("name", ""),
+        "exp": int(time.time()) + SESSION_COOKIE_DAYS * 24 * 60 * 60,
+    }
+    payload_b64 = _base64_urlsafe(
+        json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    )
+    firma = hmac.new(
+        cookie_secret.encode("utf-8"),
+        payload_b64.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    return f"{payload_b64}.{_base64_urlsafe(firma)}"
+
+
+def validar_cookie_sesion(valor, cookie_secret, allowed_email):
+    if not valor:
+        return None
+
+    try:
+        payload_b64, firma_b64 = valor.split(".", 1)
+        firma_esperada = hmac.new(
+            cookie_secret.encode("utf-8"),
+            payload_b64.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        firma_recibida = _base64_urlsafe_decode(firma_b64)
+
+        if not hmac.compare_digest(firma_esperada, firma_recibida):
+            return None
+
+        payload = json.loads(_base64_urlsafe_decode(payload_b64))
+        if int(payload.get("exp", 0)) < int(time.time()):
+            return None
+
+        if payload.get("email") != allowed_email:
+            return None
+
+        return {
+            "email": payload.get("email"),
+            "name": payload.get("name", ""),
+        }
+    except Exception:
+        return None
+
+
+def guardar_cookie_sesion(usuario, cookie_secret):
+    cookie_manager.set(
+        SESSION_COOKIE_NAME,
+        crear_cookie_sesion(usuario, cookie_secret),
+        expires_at=datetime.now() + timedelta(days=SESSION_COOKIE_DAYS),
+    )
+
+
+def restaurar_cookie_sesion(cookie_secret, allowed_email):
+    usuario = validar_cookie_sesion(
+        cookie_manager.get(SESSION_COOKIE_NAME),
+        cookie_secret,
+        allowed_email,
+    )
+
+    if usuario:
+        st.session_state["usuario_google"] = usuario
+
+    return usuario
+
+
+def cerrar_sesion():
+    st.session_state.pop("usuario_google", None)
+    cookie_manager.delete(SESSION_COOKIE_NAME)
+    limpiar_query_params()
+    st.rerun()
+
+
+def mostrar_control_sesion():
+    columna_estado, columna_boton = st.columns([1, 0.32])
+    with columna_estado:
+        st.markdown(
+            '<div class="session-pill">Sesión activa</div>',
+            unsafe_allow_html=True,
+        )
+    with columna_boton:
+        if st.button("Cerrar sesión", key="logout_button"):
+            cerrar_sesion()
 
 def validar_oauth_state(state, cookie_secret):
     try:
@@ -590,6 +698,10 @@ def requerir_login_google():
         st.error("Acceso no autorizado para esta cuenta.")
         st.stop()
 
+    usuario = restaurar_cookie_sesion(cookie_secret, allowed_email)
+    if usuario:
+        return usuario
+
     error = obtener_query_param("error")
     if error:
         limpiar_query_params()
@@ -630,10 +742,12 @@ def requerir_login_google():
             st.error("Acceso no autorizado para esta cuenta.")
             st.stop()
 
-        st.session_state["usuario_google"] = {
+        usuario = {
             "email": email,
             "name": info.get("name", ""),
         }
+        st.session_state["usuario_google"] = usuario
+        guardar_cookie_sesion(usuario, cookie_secret)
         limpiar_query_params()
         st.rerun()
 
@@ -821,7 +935,8 @@ def positivas_para_meta(total, positivas):
             return x
         x += 1
 
-requerir_login_google()
+usuario_google = requerir_login_google()
+mostrar_control_sesion()
 
 try:
     capturas = cargar_capturas()
