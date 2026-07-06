@@ -3,7 +3,6 @@
 import base64
 import hashlib
 import hmac
-import html
 import json
 import os
 import secrets as token_secrets
@@ -16,7 +15,6 @@ from zoneinfo import ZoneInfo
 import extra_streamlit_components as stx
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import id_token
@@ -737,15 +735,6 @@ def obtener_query_param(nombre):
 
 
 def mostrar_login_google(auth_url):
-    params = urllib.parse.parse_qsl(
-        urllib.parse.urlsplit(auth_url).query,
-        keep_blank_values=True,
-    )
-    campos_ocultos = "".join(
-        f'<input type="hidden" name="{html.escape(nombre, quote=True)}" '
-        f'value="{html.escape(valor, quote=True)}">'
-        for nombre, valor in params
-    )
     st.markdown(
         """
         <div class="faro-header">
@@ -762,40 +751,7 @@ def mostrar_login_google(auth_url):
         """,
         unsafe_allow_html=True,
     )
-    components.html(
-        f"""
-        <form action="{GOOGLE_AUTH_URL}" method="get" target="_top">
-            {campos_ocultos}
-            <button id="google-login" type="submit">Entrar con Google</button>
-        </form>
-        <style>
-        body {{
-            background: transparent;
-            margin: 0;
-        }}
-        #google-login {{
-            align-items: center;
-            background: #f2b95d;
-            border: 1px solid rgba(242, 185, 93, 0.55);
-            border-radius: 0.65rem;
-            color: #11131a;
-            cursor: pointer;
-            display: inline-flex;
-            font-family: sans-serif;
-            font-size: 0.9rem;
-            font-weight: 700;
-            justify-content: center;
-            margin-top: 0.85rem;
-            padding: 0.55rem 0.9rem;
-        }}
-        #google-login:hover {{
-            background: #ffd07a;
-            border-color: #ffd07a;
-        }}
-        </style>
-        """,
-        height=58,
-    )
+    st.link_button("Entrar con Google", auth_url, type="primary")
     st.stop()
 
 def requerir_login_google():
