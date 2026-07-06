@@ -428,9 +428,8 @@ st.markdown(
     .session-bar {
         align-items: center;
         display: flex;
-        justify-content: space-between;
+        min-height: 2.3rem;
         margin-bottom: 0.55rem;
-        width: 100%;
     }
 
     .session-pill {
@@ -447,20 +446,20 @@ st.markdown(
         white-space: nowrap;
     }
 
-    .session-logout {
+    div[data-testid="stButton"] > button[kind="secondary"] {
         background: rgba(255, 255, 255, 0.035);
         border: 1px solid rgba(255, 255, 255, 0.10);
         border-radius: 999px;
-        color: #9299a8 !important;
+        color: #9299a8;
         font-size: 0.76rem;
+        min-height: auto;
         padding: 0.38rem 0.65rem;
-        text-decoration: none !important;
         white-space: nowrap;
     }
 
-    .session-logout:hover {
+    div[data-testid="stButton"] > button[kind="secondary"]:hover {
         border-color: rgba(242, 185, 93, 0.45);
-        color: #f2b95d !important;
+        color: #f2b95d;
     }
 
     @media (max-width: 390px) {
@@ -574,6 +573,9 @@ def guardar_cookie_sesion(usuario, cookie_secret):
 
 
 def restaurar_cookie_sesion(cookie_secret, allowed_email):
+    if st.session_state.pop("logout_en_proceso", False):
+        return None
+
     cookie_sesion = cookie_manager.get(SESSION_COOKIE_NAME)
 
     if not cookie_sesion and not st.session_state.get("cookie_lookup_done"):
@@ -596,19 +598,24 @@ def restaurar_cookie_sesion(cookie_secret, allowed_email):
 def cerrar_sesion():
     st.session_state.pop("usuario_google", None)
     st.session_state["cookie_lookup_done"] = True
+    st.session_state["logout_en_proceso"] = True
     cookie_manager.delete(SESSION_COOKIE_NAME)
     limpiar_query_params()
     st.rerun()
 
 
 def mostrar_control_sesion():
-    st.markdown(
-        '<div class="session-bar">'
-        '<div class="session-pill">Sesión activa</div>'
-        '<a class="session-logout" href="?logout=1">Cerrar sesión</a>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    izquierda, derecha = st.columns([1, 1])
+    with izquierda:
+        st.markdown(
+            '<div class="session-bar">'
+            '<div class="session-pill">Sesión activa</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    with derecha:
+        if st.button("Cerrar sesión", key="logout_button"):
+            cerrar_sesion()
 
 def validar_oauth_state(state, cookie_secret):
     try:
@@ -720,9 +727,6 @@ def requerir_login_google():
             + ", ".join(faltantes)
         )
         st.stop()
-
-    if obtener_query_param("logout") == "1":
-        cerrar_sesion()
 
     usuario = st.session_state.get("usuario_google")
     if usuario:
