@@ -425,6 +425,14 @@ st.markdown(
         margin-bottom: 0.8rem;
     }
 
+    .session-bar {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.55rem;
+        width: 100%;
+    }
+
     .session-pill {
         align-items: center;
         background: rgba(255, 255, 255, 0.035);
@@ -435,8 +443,39 @@ st.markdown(
         font-size: 0.76rem;
         gap: 0.35rem;
         letter-spacing: 0.02em;
-        margin-bottom: 0.55rem;
         padding: 0.38rem 0.65rem;
+        white-space: nowrap;
+    }
+
+    .session-action-anchor {
+        display: none;
+    }
+
+    div[data-testid="stMarkdownContainer"]:has(.session-action-anchor)
+    + div[data-testid="stButton"] {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: -2.55rem;
+        margin-bottom: 0.55rem;
+    }
+
+    div[data-testid="stMarkdownContainer"]:has(.session-action-anchor)
+    + div[data-testid="stButton"] button {
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 999px;
+        color: #9299a8;
+        font-size: 0.76rem;
+        min-height: 0;
+        padding: 0.32rem 0.65rem;
+        white-space: nowrap;
+        width: auto;
+    }
+
+    div[data-testid="stMarkdownContainer"]:has(.session-action-anchor)
+    + div[data-testid="stButton"] button:hover {
+        border-color: rgba(242, 185, 93, 0.45);
+        color: #f2b95d;
     }
 
     @media (max-width: 390px) {
@@ -570,15 +609,15 @@ def cerrar_sesion():
 
 
 def mostrar_control_sesion():
-    columna_estado, columna_boton = st.columns([1, 0.32])
-    with columna_estado:
-        st.markdown(
-            '<div class="session-pill">Sesión activa</div>',
-            unsafe_allow_html=True,
-        )
-    with columna_boton:
-        if st.button("Cerrar sesión", key="logout_button"):
-            cerrar_sesion()
+    st.markdown(
+        '<div class="session-bar">'
+        '<div class="session-pill">Sesión activa</div>'
+        '</div>'
+        '<div class="session-action-anchor"></div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("Cerrar sesión", key="logout_button"):
+        cerrar_sesion()
 
 def validar_oauth_state(state, cookie_secret):
     try:
