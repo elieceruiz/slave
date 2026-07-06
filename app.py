@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import hmac
+import html
 import json
 import os
 import secrets as token_secrets
@@ -425,6 +426,27 @@ st.markdown(
         margin-bottom: 0.8rem;
     }
 
+    .auth-login-button {
+        align-items: center;
+        background: #f2b95d;
+        border: 1px solid rgba(242, 185, 93, 0.55);
+        border-radius: 0.65rem;
+        color: #11131a !important;
+        display: inline-flex;
+        font-size: 0.9rem;
+        font-weight: 700;
+        justify-content: center;
+        margin-top: 0.85rem;
+        padding: 0.55rem 0.9rem;
+        text-decoration: none !important;
+    }
+
+    .auth-login-button:hover {
+        background: #ffd07a;
+        border-color: #ffd07a;
+        color: #11131a !important;
+    }
+
     .session-bar {
         align-items: center;
         display: flex;
@@ -692,6 +714,7 @@ def obtener_query_param(nombre):
 
 
 def mostrar_login_google(auth_url):
+    auth_url_segura = html.escape(auth_url, quote=True)
     st.markdown(
         f"""
         <div class="faro-header">
@@ -704,11 +727,13 @@ def mostrar_login_google(auth_url):
                 Google confirma la identidad antes de abrir Faro 80;
                 la app no recibe tu contraseña.
             </div>
+            <a class="auth-login-button" href="{auth_url_segura}" target="_self">
+                Entrar con Google
+            </a>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.link_button("Entrar con Google", auth_url, type="primary")
     st.stop()
 
 
