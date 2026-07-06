@@ -537,7 +537,7 @@ def obtener_query_param(nombre):
     return valor
 
 
-def mostrar_login_google(auth_url, allowed_email):
+def mostrar_login_google(auth_url):
     st.markdown(
         f"""
         <div class="faro-header">
@@ -547,7 +547,7 @@ def mostrar_login_google(auth_url, allowed_email):
         <div class="auth-card">
             <div class="auth-title">Entrar con Google</div>
             <div class="auth-copy">
-                Faro 80 solo abre para {allowed_email}. Google confirma la identidad;
+                Google confirma la identidad antes de abrir Faro 80;
                 la app no recibe tu contrasena.
             </div>
         </div>
@@ -639,7 +639,6 @@ def requerir_login_google():
 
     mostrar_login_google(
         construir_url_login(client_id, redirect_uri, cookie_secret),
-        allowed_email,
     )
 
 
