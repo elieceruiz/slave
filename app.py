@@ -574,8 +574,15 @@ def guardar_cookie_sesion(usuario, cookie_secret):
 
 
 def restaurar_cookie_sesion(cookie_secret, allowed_email):
+    cookie_sesion = cookie_manager.get(SESSION_COOKIE_NAME)
+
+    if not cookie_sesion and not st.session_state.get("cookie_lookup_done"):
+        # El componente de cookies necesita un ciclo del navegador para hidratarse.
+        st.session_state["cookie_lookup_done"] = True
+        st.rerun()
+
     usuario = validar_cookie_sesion(
-        cookie_manager.get(SESSION_COOKIE_NAME),
+        cookie_sesion,
         cookie_secret,
         allowed_email,
     )
@@ -588,6 +595,7 @@ def restaurar_cookie_sesion(cookie_secret, allowed_email):
 
 def cerrar_sesion():
     st.session_state.pop("usuario_google", None)
+    st.session_state["cookie_lookup_done"] = True
     cookie_manager.delete(SESSION_COOKIE_NAME)
     limpiar_query_params()
     st.rerun()
