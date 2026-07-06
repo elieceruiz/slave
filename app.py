@@ -28,6 +28,7 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 OAUTH_STATE_TTL_SECONDS = 600
 SESSION_COOKIE_NAME = "faro80_session"
+SESSION_QUERY_PARAM = "session"
 SESSION_COOKIE_DAYS = 7
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 VERSION_STREAMLIT = tuple(
@@ -595,9 +596,30 @@ def guardar_cookie_sesion(usuario, cookie_secret):
     )
 
 
+def guardar_sesion_query(usuario, cookie_secret):
+    st.query_params.clear()
+    st.query_params[SESSION_QUERY_PARAM] = crear_cookie_sesion(
+        usuario,
+        cookie_secret,
+    )
+
+
+def restaurar_sesion_query(cookie_secret, allowed_email):
+    return validar_cookie_sesion(
+        obtener_query_param(SESSION_QUERY_PARAM),
+        cookie_secret,
+        allowed_email,
+    )
+
+
 def restaurar_cookie_sesion(cookie_secret, allowed_email):
     if st.session_state.pop("logout_en_proceso", False):
         return None
+
+    usuario_query = restaurar_sesion_query(cookie_secret, allowed_email)
+    if usuario_query:
+        st.session_state["usuario_google"] = usuario_query
+        return usuario_query
 
     cookie_sesion = cookie_manager.get(SESSION_COOKIE_NAME)
 
@@ -643,7 +665,7 @@ def mostrar_control_sesion():
     st.markdown(
         '<div class="session-bar">'
         '<div class="session-pill">Sesión activa</div>'
-        '<a class="session-logout" href="?logout=1">Cerrar sesión</a>'
+        '<a class="session-logout" href="?logout=1" target="_self">Cerrar sesión</a>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -825,7 +847,7 @@ def requerir_login_google():
         }
         st.session_state["usuario_google"] = usuario
         guardar_cookie_sesion(usuario, cookie_secret)
-        limpiar_query_params()
+        guardar_sesion_query(usuario, cookie_secret)
         st.rerun()
 
     mostrar_login_google(
