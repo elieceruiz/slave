@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 import extra_streamlit_components as stx
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import id_token
@@ -737,8 +738,9 @@ def obtener_query_param(nombre):
 
 def mostrar_login_google(auth_url):
     auth_url_segura = html.escape(auth_url, quote=True)
+    auth_url_js = json.dumps(auth_url)
     st.markdown(
-        f"""
+        """
         <div class="faro-header">
             <div class="faro-brand">FARO 80</div>
             <div class="faro-signal">Acceso privado</div>
@@ -749,13 +751,48 @@ def mostrar_login_google(auth_url):
                 Google confirma la identidad antes de abrir Faro 80;
                 la app no recibe tu contraseña.
             </div>
-            <a class="auth-login-button" href="{auth_url_segura}" target="_top">
-                Entrar con Google
-            </a>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    components.html(
+        f"""
+        <button id="google-login" type="button">Entrar con Google</button>
+        <script>
+        const authUrl = {auth_url_js};
+        document.getElementById("google-login").addEventListener("click", () => {{
+            window.top.location.href = authUrl;
+        }});
+        </script>
+        <style>
+        body {{
+            background: transparent;
+            margin: 0;
+        }}
+        #google-login {{
+            align-items: center;
+            background: #f2b95d;
+            border: 1px solid rgba(242, 185, 93, 0.55);
+            border-radius: 0.65rem;
+            color: #11131a;
+            cursor: pointer;
+            display: inline-flex;
+            font-family: sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            justify-content: center;
+            margin-top: 0.85rem;
+            padding: 0.55rem 0.9rem;
+        }}
+        #google-login:hover {{
+            background: #ffd07a;
+            border-color: #ffd07a;
+        }}
+        </style>
+        """,
+        height=58,
+    )
+    st.caption(f"Si el botón no responde, abre este enlace: {auth_url_segura}")
     st.stop()
 
 
