@@ -11,3 +11,4 @@ pandas
 plotly
 fastapi
 uvicorn
+requests

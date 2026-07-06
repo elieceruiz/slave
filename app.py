@@ -1,15 +1,29 @@
 # app.py
 
+import base64
+import hashlib
+import hmac
+import json
 import os
+import secrets as token_secrets
+import time
+import urllib.parse
+import urllib.request
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
+from google.auth.transport.requests import Request as GoogleRequest
+from google.oauth2 import id_token
 from pymongo import MongoClient
 
 
 META_CSAT = 80.0
+APP_BASE_URL_DEFAULT = "https://slavxx.streamlit.app"
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+OAUTH_STATE_TTL_SECONDS = 600
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 VERSION_STREAMLIT = tuple(
     int(parte)
@@ -385,6 +399,28 @@ st.markdown(
         }
     }
 
+    .auth-card {
+        background: #121622;
+        border: 1px solid #252b3b;
+        border-radius: 1rem;
+        margin-top: 2rem;
+        padding: 1.1rem;
+    }
+
+    .auth-title {
+        color: #f2f0ea;
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin-bottom: 0.35rem;
+    }
+
+    .auth-copy {
+        color: #9299a8;
+        font-size: 0.88rem;
+        margin-bottom: 0.8rem;
+    }
+
     @media (max-width: 390px) {
         .pulse-chip {
             padding: 0.55rem;
@@ -394,6 +430,217 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+def obtener_config(nombre, default=None):
+    load_dotenv()
+    valor = os.getenv(nombre)
+
+    if valor:
+        return valor
+
+    try:
+        valor = st.secrets.get(nombre)
+    except Exception:
+        valor = None
+
+    return valor or default
+
+
+def _base64_urlsafe(data):
+    return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
+
+
+def _base64_urlsafe_decode(data):
+    padding = "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode((data + padding).encode("utf-8"))
+
+
+def crear_oauth_state(cookie_secret):
+    payload = {
+        "iat": int(time.time()),
+        "nonce": token_secrets.token_urlsafe(18),
+    }
+    payload_b64 = _base64_urlsafe(
+        json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    )
+    firma = hmac.new(
+        cookie_secret.encode("utf-8"),
+        payload_b64.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    return f"{payload_b64}.{_base64_urlsafe(firma)}"
+
+
+def validar_oauth_state(state, cookie_secret):
+    try:
+        payload_b64, firma_b64 = state.split(".", 1)
+        firma_esperada = hmac.new(
+            cookie_secret.encode("utf-8"),
+            payload_b64.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        firma_recibida = _base64_urlsafe_decode(firma_b64)
+
+        if not hmac.compare_digest(firma_esperada, firma_recibida):
+            return False
+
+        payload = json.loads(_base64_urlsafe_decode(payload_b64))
+        return int(time.time()) - int(payload.get("iat", 0)) <= OAUTH_STATE_TTL_SECONDS
+    except Exception:
+        return False
+
+
+def construir_url_login(client_id, redirect_uri, cookie_secret):
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": crear_oauth_state(cookie_secret),
+        "prompt": "select_account",
+        "access_type": "online",
+    }
+    return f"{GOOGLE_AUTH_URL}?{urllib.parse.urlencode(params)}"
+
+
+def intercambiar_codigo_google(code, client_id, client_secret, redirect_uri):
+    data = urllib.parse.urlencode({
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        GOOGLE_TOKEN_URL,
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request, timeout=15) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def limpiar_query_params():
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
+
+
+def obtener_query_param(nombre):
+    valor = st.query_params.get(nombre)
+    if isinstance(valor, list):
+        return valor[0] if valor else None
+    return valor
+
+
+def mostrar_login_google(auth_url, allowed_email):
+    st.markdown(
+        f"""
+        <div class="faro-header">
+            <div class="faro-brand">FARO 80</div>
+            <div class="faro-signal">Acceso privado</div>
+        </div>
+        <div class="auth-card">
+            <div class="auth-title">Entrar con Google</div>
+            <div class="auth-copy">
+                Faro 80 solo abre para {allowed_email}. Google confirma la identidad;
+                la app no recibe tu contrasena.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.link_button("Entrar con Google", auth_url, type="primary")
+    st.stop()
+
+
+def requerir_login_google():
+    client_id = obtener_config("GOOGLE_CLIENT_ID")
+    client_secret = obtener_config("GOOGLE_CLIENT_SECRET")
+    allowed_email = obtener_config("ALLOWED_EMAIL", "eliecer.ruiz@udea.edu.co")
+    cookie_secret = obtener_config("COOKIE_SECRET")
+    redirect_uri = obtener_config("APP_BASE_URL", APP_BASE_URL_DEFAULT).rstrip("/")
+
+    faltantes = [
+        nombre
+        for nombre, valor in {
+            "GOOGLE_CLIENT_ID": client_id,
+            "GOOGLE_CLIENT_SECRET": client_secret,
+            "ALLOWED_EMAIL": allowed_email,
+            "COOKIE_SECRET": cookie_secret,
+        }.items()
+        if not valor
+    ]
+
+    if faltantes:
+        st.error(
+            "Faltan secrets para habilitar el acceso privado: "
+            + ", ".join(faltantes)
+        )
+        st.stop()
+
+    usuario = st.session_state.get("usuario_google")
+    if usuario:
+        if usuario.get("email") == allowed_email:
+            return usuario
+        st.error("Acceso no autorizado para esta cuenta.")
+        st.stop()
+
+    error = obtener_query_param("error")
+    if error:
+        limpiar_query_params()
+        st.error(f"Google no autorizo el acceso: {error}")
+        st.stop()
+
+    code = obtener_query_param("code")
+    state = obtener_query_param("state")
+
+    if code:
+        if not state or not validar_oauth_state(state, cookie_secret):
+            limpiar_query_params()
+            st.error("No fue posible validar la sesion de acceso.")
+            st.stop()
+
+        try:
+            token_response = intercambiar_codigo_google(
+                code,
+                client_id,
+                client_secret,
+                redirect_uri,
+            )
+            info = id_token.verify_oauth2_token(
+                token_response["id_token"],
+                GoogleRequest(),
+                client_id,
+            )
+        except Exception:
+            limpiar_query_params()
+            st.error("No fue posible confirmar tu identidad con Google.")
+            st.stop()
+
+        email = info.get("email")
+        email_verified = bool(info.get("email_verified"))
+
+        if not email_verified or email != allowed_email:
+            limpiar_query_params()
+            st.error("Acceso no autorizado para esta cuenta.")
+            st.stop()
+
+        st.session_state["usuario_google"] = {
+            "email": email,
+            "name": info.get("name", ""),
+        }
+        limpiar_query_params()
+        st.rerun()
+
+    mostrar_login_google(
+        construir_url_login(client_id, redirect_uri, cookie_secret),
+        allowed_email,
+    )
 
 
 @st.cache_resource
@@ -574,6 +821,8 @@ def positivas_para_meta(total, positivas):
         if (positivas + x) / (total + x) >= meta:
             return x
         x += 1
+
+requerir_login_google()
 
 try:
     capturas = cargar_capturas()
