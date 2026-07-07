@@ -468,11 +468,18 @@ st.markdown(
         white-space: nowrap;
     }
 
-    div[data-testid="stButton"] {
+    div[data-testid=stElementContainer]:has(div[data-testid=stButton]) {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+    }
+
+    div[data-testid=stElementContainer]:has(div[data-testid=stButton]) div[data-testid=stButton],
+    div[data-testid=stButton] {
         display: flex;
         justify-content: flex-end;
         margin-bottom: 0.55rem;
-        width: 100%;
+        width: auto;
     }
 
     div[data-testid="stButton"] > button[kind="secondary"] {
