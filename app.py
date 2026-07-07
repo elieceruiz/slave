@@ -1470,16 +1470,17 @@ if not reviews_historicas.empty:
                 reviews_historicas["mes"] == mes_seleccionado
             ]
             .sort_values("posted_dt", ascending=False)
-            .head(25)
         )
 
         tarjetas = []
         for _, review in casos_mes.iterrows():
             color = "green" if review.get("color") == "green" else "red"
-            color_texto = "POSITIVA" if color == "green" else "NO POSITIVA"
             comentario = valor_texto(
                 review.get("comment"),
-                valor_texto(review.get("resolution_comment")),
+                valor_texto(
+                    review.get("resolution_comment"),
+                    "No comments by the Applicant.",
+                ),
             )
             etiquetas = unir_lista(review.get("excellence"))
             mejoras = unir_lista(review.get("improve"))
@@ -1489,9 +1490,7 @@ if not reviews_historicas.empty:
             detalle = " · ".join(
                 parte
                 for parte in [
-                    color_texto,
                     valor_texto(review.get("issue_type_1")),
-                    valor_texto(review.get("channel")),
                 ]
                 if parte and parte != "Sin registro"
             )
@@ -1511,8 +1510,8 @@ if not reviews_historicas.empty:
             unsafe_allow_html=True,
         )
         st.caption(
-            "Se muestran hasta 25 experiencias del mes seleccionado, "
-            "ordenadas de la más reciente a la más antigua."
+            "Experiencias del mes seleccionado, ordenadas de la más "
+            "reciente a la más antigua."
         )
 
 st.divider()
