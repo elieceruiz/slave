@@ -472,6 +472,7 @@ st.markdown(
         display: flex;
         justify-content: flex-end;
         margin-bottom: 0.55rem;
+        width: 100%;
     }
 
     div[data-testid="stButton"] > button[kind="secondary"] {
@@ -480,6 +481,7 @@ st.markdown(
         border-radius: 999px;
         color: #9299a8;
         font-size: 0.76rem;
+        margin-left: auto;
         min-height: 2.05rem;
         padding: 0.38rem 0.65rem;
         white-space: nowrap;
