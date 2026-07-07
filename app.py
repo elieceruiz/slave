@@ -1555,13 +1555,7 @@ if not reviews_historicas.empty:
                 senales = etiquetas or mejoras or valor_texto(
                     review.get("classification_reason")
                 )
-                detalle = " · ".join(
-                    parte
-                    for parte in [
-                        valor_texto(review.get("issue_type_1")),
-                    ]
-                    if parte and parte != "Sin registro"
-                )
+                detalle = valor_texto(review.get("tags"), "")
                 tarjetas.append(
                     f'<div class="model-review-card model-review-{color}">'
                     f'<div class="model-review-date">'
