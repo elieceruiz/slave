@@ -399,7 +399,36 @@ st.markdown(
         }
 
         .faro-header {
-            margin-bottom: 0.45rem;
+            margin-bottom: 0.25rem;
+        }
+
+        div[data-testid=stHorizontalBlock]:has(.faro-header) {
+            align-items: flex-start;
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:first-child {
+            flex: 1 1 auto !important;
+            width: auto !important;
+        }
+
+        div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:last-child {
+            flex: 0 0 auto !important;
+            width: auto !important;
+        }
+
+        div[data-testid=stHorizontalBlock]:has(.faro-header) div[data-testid=stButton] {
+            margin-bottom: 0;
+        }
+
+        div[data-testid=stHorizontalBlock]:has(.faro-header) div[data-testid=stButton] > button[kind=secondary] {
+            font-size: 0.72rem;
+            min-height: 1.9rem;
+            padding: 0.32rem 0.55rem;
         }
     }
 
@@ -466,6 +495,24 @@ st.markdown(
         letter-spacing: 0.02em;
         padding: 0.38rem 0.65rem;
         white-space: nowrap;
+    }
+
+    div[data-testid=stHorizontalBlock]:has(.faro-header) {
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0.35rem;
+    }
+
+    div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:first-child {
+        flex: 1 1 auto !important;
+        min-width: 0;
+        width: auto !important;
+    }
+
+    div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:last-child {
+        flex: 0 0 auto !important;
+        min-width: 0;
+        width: auto !important;
     }
 
     div[data-testid=stElementContainer]:has(div[data-testid=stButton]) {
