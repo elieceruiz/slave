@@ -469,15 +469,22 @@ st.markdown(
         white-space: nowrap;
     }
 
+    div[data-testid="stButton"] {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.55rem;
+    }
+
     div[data-testid="stButton"] > button[kind="secondary"] {
         background: rgba(255, 255, 255, 0.035);
         border: 1px solid rgba(255, 255, 255, 0.10);
         border-radius: 999px;
         color: #9299a8;
         font-size: 0.76rem;
-        min-height: auto;
+        min-height: 2.05rem;
         padding: 0.38rem 0.65rem;
         white-space: nowrap;
+        width: auto;
     }
 
     div[data-testid="stButton"] > button[kind="secondary"]:hover {
@@ -663,7 +670,7 @@ def cerrar_sesion():
 
 
 def mostrar_control_sesion():
-    izquierda, derecha = st.columns([1, 1])
+    izquierda, derecha = st.columns([1.35, 1], vertical_alignment="center")
     with izquierda:
         st.markdown(
             '<div class="session-bar">'
