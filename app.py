@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import hmac
+import html
 import json
 import os
 import secrets as token_secrets
@@ -356,6 +357,137 @@ st.markdown(
         white-space: nowrap;
     }
 
+    .model-card {
+        background:
+            radial-gradient(
+                circle at 18% 12%,
+                rgba(105, 200, 156, 0.10),
+                transparent 32%
+            ),
+            #10141f;
+        border: 1px solid #252b3b;
+        border-radius: 1rem;
+        margin: 0 0 1.1rem;
+        padding: 1rem;
+    }
+
+    .model-kicker {
+        color: #69c89c;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+    }
+
+    .model-title {
+        color: #f2f0ea;
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin-top: 0.35rem;
+    }
+
+    .model-copy {
+        color: #9299a8;
+        font-size: 0.82rem;
+        margin-top: 0.3rem;
+    }
+
+    .model-grid {
+        display: grid;
+        gap: 0.55rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 0.9rem;
+    }
+
+    .model-stat {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid #252b3b;
+        border-radius: 0.75rem;
+        padding: 0.65rem;
+    }
+
+    .model-stat-value {
+        color: #f2f0ea;
+        font-size: 1.25rem;
+        font-weight: 750;
+        letter-spacing: -0.04em;
+    }
+
+    .model-stat-label {
+        color: #9299a8;
+        font-size: 0.72rem;
+        margin-top: 0.1rem;
+    }
+
+    .model-bar {
+        background: rgba(219, 123, 131, 0.20);
+        border-radius: 999px;
+        height: 5px;
+        margin-top: 0.85rem;
+        overflow: hidden;
+    }
+
+    .model-bar-positive {
+        background: #69c89c;
+        height: 5px;
+    }
+
+    .model-month-row,
+    .model-review-card {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid #252b3b;
+        border-radius: 0.75rem;
+        margin-bottom: 0.55rem;
+        padding: 0.7rem 0.8rem;
+    }
+
+    .model-month-row {
+        align-items: center;
+        display: grid;
+        gap: 0.7rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .model-month-name,
+    .model-review-date {
+        color: #f2f0ea;
+        font-size: 0.86rem;
+        font-weight: 650;
+    }
+
+    .model-month-detail,
+    .model-review-detail {
+        color: #9299a8;
+        font-size: 0.76rem;
+        margin-top: 0.15rem;
+    }
+
+    .model-month-rate {
+        color: #f2f0ea;
+        font-size: 1rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .model-review-card {
+        border-left: 3px solid #555d70;
+    }
+
+    .model-review-card.model-review-green {
+        border-left-color: #69c89c;
+    }
+
+    .model-review-card.model-review-red {
+        border-left-color: #db7b83;
+    }
+
+    .model-review-text {
+        color: #d7d9e0;
+        font-size: 0.82rem;
+        margin-top: 0.45rem;
+    }
+
     @media (max-width: 480px) {
         .route-row {
             gap: 0.55rem;
@@ -370,6 +502,15 @@ st.markdown(
         + div [role="gridcell"] {
             padding-left: 0.3rem;
             padding-right: 0.3rem;
+        }
+
+        .model-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .model-month-row {
+            align-items: flex-start;
+            grid-template-columns: 1fr;
         }
     }
 
@@ -798,6 +939,24 @@ def obtener_coleccion():
     return cliente["slave"]["capturas"]
 
 
+@st.cache_resource
+def obtener_coleccion_reviews_historicas():
+    # Dataset independiente: no se mezcla con las capturas vivas de Faro 80.
+    load_dotenv()
+    mongo_uri = os.getenv("MONGO_URI")
+
+    if not mongo_uri:
+        raise RuntimeError("MONGO_URI no estÃ¡ definida.")
+
+    cliente = MongoClient(
+        mongo_uri,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+    )
+    cliente.admin.command("ping")
+    return cliente["slave"]["reviews_historicas"]
+
+
 @st.cache_data(ttl=60)
 def cargar_capturas():
     # El TTL evita consultas constantes; la pagina se actualiza en cada rerun.
@@ -826,6 +985,55 @@ def cargar_capturas():
     return (
         df.dropna(subset=["timestamp_captura", "mes"])
         .sort_values("timestamp_captura")
+        .reset_index(drop=True)
+    )
+
+
+@st.cache_data(ttl=300)
+def cargar_reviews_historicas():
+    campos = {
+        "_id": 0,
+        "review_key": 1,
+        "dataset": 1,
+        "posted": 1,
+        "posted_dt": 1,
+        "sent": 1,
+        "mes": 1,
+        "month_name": 1,
+        "color": 1,
+        "classification_reason": 1,
+        "comment": 1,
+        "excellence": 1,
+        "improve": 1,
+        "resolved": 1,
+        "resolution_comment": 1,
+        "channel": 1,
+        "brand": 1,
+        "area": 1,
+        "contact_id": 1,
+        "area_type": 1,
+        "issue_type_1": 1,
+        "tags": 1,
+        "agent": 1,
+        "has_comment": 1,
+        "has_resolution_comment": 1,
+        "excellence_count": 1,
+        "improve_count": 1,
+    }
+    documentos = list(
+        obtener_coleccion_reviews_historicas()
+        .find({"dataset": "driver_applicant_support_2025"}, campos)
+        .sort("posted_dt", -1)
+    )
+
+    if not documentos:
+        return pd.DataFrame(columns=list(campos.keys())[1:])
+
+    df = pd.DataFrame(documentos)
+    df["posted_dt"] = pd.to_datetime(df["posted_dt"], errors="coerce")
+    return (
+        df.dropna(subset=["posted_dt", "mes"])
+        .sort_values("posted_dt", ascending=False)
         .reset_index(drop=True)
     )
 
@@ -897,6 +1105,49 @@ def nombre_mes(mes):
     return meses.get(str(mes).split("-")[-1], str(mes))
 
 
+def nombre_mes_largo(mes):
+    valor = str(mes)
+    nombre = nombre_mes(valor).capitalize()
+    year = valor.split("-")[0] if "-" in valor else ""
+    return f"{nombre} {year}".strip()
+
+
+def valor_texto(valor, fallback="Sin registro"):
+    if valor is None or pd.isna(valor):
+        return fallback
+    texto = str(valor).strip()
+    return texto or fallback
+
+
+def unir_lista(valor):
+    if isinstance(valor, list):
+        return ", ".join(str(item) for item in valor if item)
+    if valor is None or pd.isna(valor):
+        return ""
+    return str(valor)
+
+
+def formatear_fecha_simple(valor):
+    if pd.isna(valor):
+        return "Sin fecha"
+    fecha = pd.Timestamp(valor)
+    meses = (
+        "ene",
+        "feb",
+        "mar",
+        "abr",
+        "may",
+        "jun",
+        "jul",
+        "ago",
+        "sep",
+        "oct",
+        "nov",
+        "dic",
+    )
+    return f"{fecha.day:02d} {meses[fecha.month - 1]} {fecha:%Y Â· %H:%M}"
+
+
 def valor_porcentaje(valor):
     return "—" if pd.isna(valor) else f"{valor:.1f}%"
 
@@ -966,6 +1217,11 @@ try:
 except Exception:
     st.error("No fue posible recibir las señales.")
     st.stop()
+
+try:
+    reviews_historicas = cargar_reviews_historicas()
+except Exception:
+    reviews_historicas = pd.DataFrame()
 
 if capturas.empty:
     st.info("Todavía no hay señales para mostrar.")
@@ -1110,6 +1366,153 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+if not reviews_historicas.empty:
+    total_reviews = len(reviews_historicas)
+    green_reviews = int((reviews_historicas["color"] == "green").sum())
+    red_reviews = int((reviews_historicas["color"] == "red").sum())
+    positive_rate = (
+        (green_reviews / total_reviews) * 100
+        if total_reviews
+        else 0
+    )
+    bar_width = min(max(positive_rate, 0), 100)
+
+    st.markdown(
+        f"""
+        <div class="model-card">
+            <div class="model-kicker">Modelo replicable</div>
+            <div class="model-title">
+                Piloto histÃ³rico Â· Driver Applicant Support 2025
+            </div>
+            <div class="model-copy">
+                Una muestra completa para convertir feedback en diagnÃ³stico
+                auditable, antes de replicarlo sobre conversaciones actuales.
+            </div>
+            <div class="model-grid">
+                <div class="model-stat">
+                    <div class="model-stat-value">{total_reviews}</div>
+                    <div class="model-stat-label">experiencias</div>
+                </div>
+                <div class="model-stat">
+                    <div class="model-stat-value">{green_reviews}</div>
+                    <div class="model-stat-label">green</div>
+                </div>
+                <div class="model-stat">
+                    <div class="model-stat-value">{red_reviews}</div>
+                    <div class="model-stat-label">red</div>
+                </div>
+                <div class="model-stat">
+                    <div class="model-stat-value">{positive_rate:.1f}%</div>
+                    <div class="model-stat-label">seÃ±al positiva</div>
+                </div>
+            </div>
+            <div class="model-bar">
+                <div class="model-bar-positive" style="width: {bar_width:.1f}%"></div>
+            </div>
+            <div class="model-copy">
+                Dataset separado de Faro 80 actual; conserva comentarios,
+                etiquetas, resoluciÃ³n, canal, caso y evidencia individual.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("Modelo Replicable", expanded=False):
+        resumen_mensual = (
+            reviews_historicas
+            .groupby("mes", as_index=False)
+            .agg(
+                experiencias=("review_key", "count"),
+                green=("color", lambda serie: int((serie == "green").sum())),
+                red=("color", lambda serie: int((serie == "red").sum())),
+            )
+            .sort_values("mes", ascending=False)
+        )
+        resumen_mensual["resultado"] = (
+            resumen_mensual["green"]
+            / resumen_mensual["experiencias"]
+            * 100
+        )
+
+        filas_meses = []
+        for _, fila_mes in resumen_mensual.iterrows():
+            filas_meses.append(
+                '<div class="model-month-row">'
+                '<div>'
+                f'<div class="model-month-name">{nombre_mes_largo(fila_mes["mes"])}</div>'
+                '<div class="model-month-detail">'
+                f'{int(fila_mes["experiencias"])} experiencias Â· '
+                f'{int(fila_mes["green"])} green Â· '
+                f'{int(fila_mes["red"])} red'
+                '</div>'
+                '</div>'
+                f'<div class="model-month-rate">{fila_mes["resultado"]:.1f}%</div>'
+                '</div>'
+            )
+
+        st.markdown(
+            f'<div class="model-month-list">{"".join(filas_meses)}</div>',
+            unsafe_allow_html=True,
+        )
+
+        meses_disponibles = resumen_mensual["mes"].tolist()
+        mes_seleccionado = st.selectbox(
+            "Explorar evidencia por mes",
+            meses_disponibles,
+            format_func=nombre_mes_largo,
+            index=0,
+        )
+
+        casos_mes = (
+            reviews_historicas[
+                reviews_historicas["mes"] == mes_seleccionado
+            ]
+            .sort_values("posted_dt", ascending=False)
+            .head(25)
+        )
+
+        tarjetas = []
+        for _, review in casos_mes.iterrows():
+            color = "green" if review.get("color") == "green" else "red"
+            comentario = valor_texto(
+                review.get("comment"),
+                valor_texto(review.get("resolution_comment")),
+            )
+            etiquetas = unir_lista(review.get("excellence"))
+            mejoras = unir_lista(review.get("improve"))
+            senales = etiquetas or mejoras or valor_texto(
+                review.get("classification_reason")
+            )
+            detalle = " Â· ".join(
+                parte
+                for parte in [
+                    color.upper(),
+                    valor_texto(review.get("issue_type_1")),
+                    valor_texto(review.get("channel")),
+                ]
+                if parte and parte != "Sin registro"
+            )
+            tarjetas.append(
+                f'<div class="model-review-card model-review-{color}">'
+                f'<div class="model-review-date">'
+                f'{html.escape(formatear_fecha_simple(review.get("posted_dt")))}'
+                '</div>'
+                f'<div class="model-review-detail">{html.escape(detalle)}</div>'
+                f'<div class="model-review-text">{html.escape(comentario)}</div>'
+                f'<div class="model-review-detail">{html.escape(senales)}</div>'
+                '</div>'
+            )
+
+        st.markdown(
+            "".join(tarjetas),
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "Se muestran hasta 25 experiencias del mes seleccionado, "
+            "ordenadas de la mÃ¡s reciente a la mÃ¡s antigua."
+        )
 
 st.divider()
 # La travesia aparece primero para mantener la narrativa de recorrido.
