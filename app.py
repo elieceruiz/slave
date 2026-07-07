@@ -946,7 +946,7 @@ def obtener_coleccion_reviews_historicas():
     mongo_uri = os.getenv("MONGO_URI")
 
     if not mongo_uri:
-        raise RuntimeError("MONGO_URI no estÃ¡ definida.")
+        raise RuntimeError("MONGO_URI no está definida.")
 
     cliente = MongoClient(
         mongo_uri,
@@ -1145,7 +1145,7 @@ def formatear_fecha_simple(valor):
         "nov",
         "dic",
     )
-    return f"{fecha.day:02d} {meses[fecha.month - 1]} {fecha:%Y Â· %H:%M}"
+    return f"{fecha.day:02d} {meses[fecha.month - 1]} {fecha:%Y · %H:%M}"
 
 
 def valor_porcentaje(valor):
@@ -1383,10 +1383,10 @@ if not reviews_historicas.empty:
         <div class="model-card">
             <div class="model-kicker">Modelo replicable</div>
             <div class="model-title">
-                Piloto histÃ³rico Â· Driver Applicant Support 2025
+                Piloto histórico · Driver Applicant Support 2025
             </div>
             <div class="model-copy">
-                Una muestra completa para convertir feedback en diagnÃ³stico
+                Una muestra completa para convertir feedback en diagnóstico
                 auditable, antes de replicarlo sobre conversaciones actuales.
             </div>
             <div class="model-grid">
@@ -1404,7 +1404,7 @@ if not reviews_historicas.empty:
                 </div>
                 <div class="model-stat">
                     <div class="model-stat-value">{positive_rate:.1f}%</div>
-                    <div class="model-stat-label">seÃ±al positiva</div>
+                    <div class="model-stat-label">señal positiva</div>
                 </div>
             </div>
             <div class="model-bar">
@@ -1412,7 +1412,7 @@ if not reviews_historicas.empty:
             </div>
             <div class="model-copy">
                 Dataset separado de Faro 80 actual; conserva comentarios,
-                etiquetas, resoluciÃ³n, canal, caso y evidencia individual.
+                etiquetas, resolución, canal, caso y evidencia individual.
             </div>
         </div>
         """,
@@ -1443,8 +1443,8 @@ if not reviews_historicas.empty:
                 '<div>'
                 f'<div class="model-month-name">{nombre_mes_largo(fila_mes["mes"])}</div>'
                 '<div class="model-month-detail">'
-                f'{int(fila_mes["experiencias"])} experiencias Â· '
-                f'{int(fila_mes["green"])} positivas Â· '
+                f'{int(fila_mes["experiencias"])} experiencias · '
+                f'{int(fila_mes["green"])} positivas · '
                 f'{int(fila_mes["red"])} no positivas'
                 '</div>'
                 '</div>'
@@ -1486,7 +1486,7 @@ if not reviews_historicas.empty:
             senales = etiquetas or mejoras or valor_texto(
                 review.get("classification_reason")
             )
-            detalle = " Â· ".join(
+            detalle = " · ".join(
                 parte
                 for parte in [
                     color_texto,
@@ -1512,7 +1512,7 @@ if not reviews_historicas.empty:
         )
         st.caption(
             "Se muestran hasta 25 experiencias del mes seleccionado, "
-            "ordenadas de la mÃ¡s reciente a la mÃ¡s antigua."
+            "ordenadas de la más reciente a la más antigua."
         )
 
 st.divider()
