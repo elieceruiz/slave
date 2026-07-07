@@ -648,17 +648,8 @@ def cerrar_sesion():
 
 
 def mostrar_control_sesion():
-    izquierda, derecha = st.columns([1.35, 1], vertical_alignment="center")
-    with izquierda:
-        st.markdown(
-            '<div class="session-bar">'
-            '<div class="session-pill">Sesión activa</div>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-    with derecha:
-        if st.button("Cerrar sesión", key="logout_button"):
-            cerrar_sesion()
+    if st.button("Cerrar sesión", key="logout_button"):
+        cerrar_sesion()
 
 def validar_oauth_state(state, cookie_secret):
     try:
