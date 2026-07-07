@@ -463,6 +463,53 @@ st.markdown(
         margin-top: 0.15rem;
     }
 
+    .model-month-balance {
+        display: grid;
+        gap: 0.32rem;
+        margin-top: 0.45rem;
+    }
+
+    .model-balance-line {
+        align-items: center;
+        display: flex;
+        gap: 0.45rem;
+        min-width: 0;
+    }
+
+    .model-balance-label {
+        color: #9299a8;
+        flex: 0 0 auto;
+        font-size: 0.74rem;
+        min-width: 6.2rem;
+    }
+
+    .model-balance-dots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.22rem;
+    }
+
+    .model-balance-dot {
+        border-radius: 50%;
+        height: 0.38rem;
+        width: 0.38rem;
+    }
+
+    .model-balance-positive {
+        background: #69c89c;
+        box-shadow: 0 0 0 2px rgba(105, 200, 156, 0.08);
+    }
+
+    .model-balance-other {
+        background: #555d70;
+    }
+
+    .model-balance-more {
+        color: #9299a8;
+        font-size: 0.72rem;
+        line-height: 1;
+    }
+
     .model-month-rate {
         color: #f2f0ea;
         font-size: 1rem;
@@ -1148,6 +1195,18 @@ def formatear_fecha_simple(valor):
     return f"{fecha.day:02d} {meses[fecha.month - 1]} {fecha:%Y · %H:%M}"
 
 
+def puntos_balance(cantidad, clase, limite=24):
+    cantidad = int(cantidad or 0)
+    visibles = min(cantidad, limite)
+    puntos = (
+        f'<span class="model-balance-dot {clase}"></span>' * visibles
+    )
+    extra = cantidad - visibles
+    if extra > 0:
+        puntos += f'<span class="model-balance-more">+{extra}</span>'
+    return puntos
+
+
 def valor_porcentaje(valor):
     return "—" if pd.isna(valor) else f"{valor:.1f}%"
 
@@ -1438,14 +1497,27 @@ if not reviews_historicas.empty:
 
         filas_meses = []
         for _, fila_mes in resumen_mensual.iterrows():
+            total_mes = int(fila_mes["experiencias"])
+            positivas_mes = int(fila_mes["green"])
+            no_positivas_mes = int(fila_mes["red"])
             filas_meses.append(
                 '<div class="model-month-row">'
                 '<div>'
                 f'<div class="model-month-name">{nombre_mes_largo(fila_mes["mes"])}</div>'
-                '<div class="model-month-detail">'
-                f'{int(fila_mes["experiencias"])} experiencias · '
-                f'{int(fila_mes["green"])} positivas · '
-                f'{int(fila_mes["red"])} no positivas'
+                f'<div class="model-month-detail">{total_mes} experiencias</div>'
+                '<div class="model-month-balance">'
+                '<div class="model-balance-line">'
+                f'<span class="model-balance-label">{positivas_mes} positivas</span>'
+                '<span class="model-balance-dots">'
+                f'{puntos_balance(positivas_mes, "model-balance-positive")}'
+                '</span>'
+                '</div>'
+                '<div class="model-balance-line">'
+                f'<span class="model-balance-label">{no_positivas_mes} no positivas</span>'
+                '<span class="model-balance-dots">'
+                f'{puntos_balance(no_positivas_mes, "model-balance-other")}'
+                '</span>'
+                '</div>'
                 '</div>'
                 '</div>'
                 f'<div class="model-month-rate">{fila_mes["resultado"]:.1f}%</div>'
