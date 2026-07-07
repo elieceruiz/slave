@@ -1429,7 +1429,7 @@ if not reviews_historicas.empty:
         <div class="model-card">
             <div class="model-kicker">Modelo replicable</div>
             <div class="model-title">
-                Piloto histórico · Driver Applicant Support 2025
+                Piloto histórico · DAS 2025
             </div>
             <div class="model-copy">
                 Una muestra completa para convertir feedback en diagnóstico
