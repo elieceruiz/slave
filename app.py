@@ -504,12 +504,6 @@ st.markdown(
         background: #555d70;
     }
 
-    .model-balance-more {
-        color: #9299a8;
-        font-size: 0.72rem;
-        line-height: 1;
-    }
-
     .model-month-rate {
         color: #f2f0ea;
         font-size: 1rem;
@@ -1195,16 +1189,9 @@ def formatear_fecha_simple(valor):
     return f"{fecha.day:02d} {meses[fecha.month - 1]} {fecha:%Y · %H:%M}"
 
 
-def puntos_balance(cantidad, clase, limite=24):
+def puntos_balance(cantidad, clase):
     cantidad = int(cantidad or 0)
-    visibles = min(cantidad, limite)
-    puntos = (
-        f'<span class="model-balance-dot {clase}"></span>' * visibles
-    )
-    extra = cantidad - visibles
-    if extra > 0:
-        puntos += f'<span class="model-balance-more">+{extra}</span>'
-    return puntos
+    return f'<span class="model-balance-dot {clase}"></span>' * cantidad
 
 
 def valor_porcentaje(valor):
