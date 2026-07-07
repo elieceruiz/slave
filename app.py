@@ -1576,6 +1576,60 @@ if not reviews_historicas.empty:
                 "reciente a la más antigua."
             )
 
+    with st.expander("Travesía comparada", expanded=False):
+        meses_cortos = {
+            1: "Ene",
+            2: "Feb",
+            3: "Mar",
+            4: "Abr",
+            5: "May",
+            6: "Jun",
+            7: "Jul",
+            8: "Ago",
+            9: "Sep",
+            10: "Oct",
+            11: "Nov",
+            12: "Dic",
+        }
+
+        piloto_2025 = resumen_mensual.copy()
+        piloto_2025["month"] = piloto_2025["mes"].str[-2:].astype(int)
+        piloto_2025 = piloto_2025[["month", "resultado"]].rename(
+            columns={"resultado": "Piloto DAS 2025"}
+        )
+
+        actual_2026 = (
+            capturas.sort_values("timestamp_captura")
+            .groupby("mes", as_index=False)
+            .tail(1)
+            .copy()
+        )
+        actual_2026["month"] = actual_2026["mes"].str[-2:].astype(int)
+        actual_2026 = actual_2026[["month", "csat"]].rename(
+            columns={"csat": "Faro 80 actual"}
+        )
+
+        comparativa = (
+            pd.merge(piloto_2025, actual_2026, on="month", how="outer")
+            .sort_values("month")
+            .reset_index(drop=True)
+        )
+        comparativa["Mes"] = comparativa["month"].map(meses_cortos)
+
+        st.caption(
+            "Dos contextos distintos. Una misma forma de observar señales."
+        )
+        st.line_chart(
+            comparativa.set_index("Mes")[
+                ["Piloto DAS 2025", "Faro 80 actual"]
+            ],
+            color=["#69c89c", "#7c8cff"],
+            height=320,
+            y_label="Señal positiva",
+            x_label="Mes",
+            **ANCHO_STRETCH,
+        )
+
 st.divider()
 # La travesia aparece primero para mantener la narrativa de recorrido.
 st.subheader(f"Travesía de {nombre_mes(mes_actual)}")
