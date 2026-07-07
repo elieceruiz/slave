@@ -1015,7 +1015,6 @@ def positivas_para_meta(total, positivas):
         x += 1
 
 usuario_google = requerir_login_google()
-mostrar_control_sesion()
 
 try:
     capturas = cargar_capturas()
@@ -1102,18 +1101,24 @@ puntos_experiencias = (
     + '<span class="experience-dot experience-other"></span>' * no_positivas
 )
 
-st.markdown(
-    f"""
-    <!-- Portada silenciosa: orienta sin controles manuales. -->
-    <div class="faro-header">
-        <div class="faro-brand">FARO 80</div>
-        <div class="faro-signal">
-            Última señal: {ultima_senal_texto}
+encabezado_col, sesion_col = st.columns([0.68, 0.32], gap="small")
+
+with encabezado_col:
+    st.markdown(
+        f"""
+        <!-- Portada silenciosa: orienta sin controles manuales. -->
+        <div class="faro-header">
+            <div class="faro-brand">FARO 80</div>
+            <div class="faro-signal">
+                Última señal: {ultima_senal_texto}
+            </div>
         </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        """,
+        unsafe_allow_html=True,
+    )
+
+with sesion_col:
+    mostrar_control_sesion()
 
 st.markdown(
     f"""
