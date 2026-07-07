@@ -13,6 +13,7 @@ import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+import altair as alt
 import extra_streamlit_components as stx
 import pandas as pd
 import streamlit as st
@@ -1649,12 +1650,30 @@ if not reviews_historicas.empty:
         st.caption(
             "Subidas y bajadas desde el piloto DAS hasta el recorrido actual."
         )
-        st.line_chart(
-            recorrido_total.set_index("Mes")[["Recorrido"]],
-            color=["#69c89c"],
-            height=320,
-            y_label="Señal positiva",
-            x_label="Tiempo",
+        recorrido_chart = (
+            alt.Chart(recorrido_total)
+            .mark_line(point=True, color="#69c89c", strokeWidth=3)
+            .encode(
+                x=alt.X(
+                    "Mes:N",
+                    sort=recorrido_total["Mes"].tolist(),
+                    title="Tiempo",
+                    axis=alt.Axis(labelAngle=-90),
+                ),
+                y=alt.Y(
+                    "Recorrido:Q",
+                    title="Señal positiva",
+                    scale=alt.Scale(domain=[0, 100]),
+                ),
+                tooltip=[
+                    alt.Tooltip("Mes:N", title="Mes"),
+                    alt.Tooltip("Recorrido:Q", title="Señal positiva", format=".1f"),
+                ],
+            )
+            .properties(height=320)
+        )
+        st.altair_chart(
+            recorrido_chart,
             **ANCHO_STRETCH,
         )
 
