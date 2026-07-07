@@ -1153,6 +1153,42 @@ def nombre_mes_largo(mes):
     return f"{nombre} {year}".strip()
 
 
+MESES_CORTOS = (
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+)
+
+DIAS_CORTOS = (
+    "lun",
+    "mar",
+    "mié",
+    "jue",
+    "vie",
+    "sáb",
+    "dom",
+)
+
+
+def etiqueta_mes_grafico(valor):
+    fecha = pd.Timestamp(valor)
+    return f"{MESES_CORTOS[fecha.month - 1].capitalize()} {fecha:%Y}"
+
+
+def etiqueta_senal_grafico(valor):
+    fecha = pd.Timestamp(valor)
+    return f"{DIAS_CORTOS[fecha.weekday()].capitalize()} {fecha.day:02d}"
+
+
 def valor_texto(valor, fallback="Sin registro"):
     if valor is None or pd.isna(valor):
         return fallback
@@ -1606,12 +1642,15 @@ if not reviews_historicas.empty:
             .sort_values("fecha_mes")
             .reset_index(drop=True)
         )
+        recorrido_total["Mes"] = recorrido_total["fecha_mes"].apply(
+            etiqueta_mes_grafico
+        )
 
         st.caption(
             "Subidas y bajadas desde el piloto DAS hasta el recorrido actual."
         )
         st.line_chart(
-            recorrido_total.set_index("fecha_mes")[["Recorrido"]],
+            recorrido_total.set_index("Mes")[["Recorrido"]],
             color=["#69c89c"],
             height=320,
             y_label="Señal positiva",
@@ -1632,8 +1671,11 @@ if capturas_mes["csat"].notna().sum() > 1:
     grafico["timestamp_colombia"] = grafico["timestamp_captura"].dt.tz_convert(
         ZONA_COLOMBIA
     )
+    grafico["Señal"] = grafico["timestamp_colombia"].apply(
+        etiqueta_senal_grafico
+    )
     st.line_chart(
-        grafico.set_index("timestamp_colombia")[["csat"]],
+        grafico.set_index("Señal")[["csat"]],
         color=["#7c8cff"],
         height=350,
         y_label="CSAT",
