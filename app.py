@@ -1516,62 +1516,71 @@ if not reviews_historicas.empty:
             unsafe_allow_html=True,
         )
 
-        meses_disponibles = resumen_mensual["mes"].tolist()
+        meses_disponibles = ["__placeholder__"] + resumen_mensual["mes"].tolist()
         mes_seleccionado = st.selectbox(
             "Explorar evidencia por mes",
             meses_disponibles,
-            format_func=nombre_mes_largo,
+            format_func=lambda mes: (
+                "Selecciona un mes"
+                if mes == "__placeholder__"
+                else nombre_mes_largo(mes)
+            ),
             index=0,
         )
 
-        casos_mes = (
-            reviews_historicas[
-                reviews_historicas["mes"] == mes_seleccionado
-            ]
-            .sort_values("posted_dt", ascending=False)
-        )
-
-        tarjetas = []
-        for _, review in casos_mes.iterrows():
-            color = "green" if review.get("color") == "green" else "red"
-            comentario = valor_texto(
-                review.get("comment"),
-                valor_texto(
-                    review.get("resolution_comment"),
-                    "No comments by the Applicant.",
-                ),
+        if mes_seleccionado == "__placeholder__":
+            st.caption(
+                "Elige un mes para abrir sus experiencias individuales."
             )
-            etiquetas = unir_lista(review.get("excellence"))
-            mejoras = unir_lista(review.get("improve"))
-            senales = etiquetas or mejoras or valor_texto(
-                review.get("classification_reason")
-            )
-            detalle = " · ".join(
-                parte
-                for parte in [
-                    valor_texto(review.get("issue_type_1")),
+        else:
+            casos_mes = (
+                reviews_historicas[
+                    reviews_historicas["mes"] == mes_seleccionado
                 ]
-                if parte and parte != "Sin registro"
-            )
-            tarjetas.append(
-                f'<div class="model-review-card model-review-{color}">'
-                f'<div class="model-review-date">'
-                f'{html.escape(formatear_fecha_simple(review.get("posted_dt")))}'
-                '</div>'
-                f'<div class="model-review-detail">{html.escape(detalle)}</div>'
-                f'<div class="model-review-text">{html.escape(comentario)}</div>'
-                f'<div class="model-review-detail">{html.escape(senales)}</div>'
-                '</div>'
+                .sort_values("posted_dt", ascending=False)
             )
 
-        st.markdown(
-            "".join(tarjetas),
-            unsafe_allow_html=True,
-        )
-        st.caption(
-            "Experiencias del mes seleccionado, ordenadas de la más "
-            "reciente a la más antigua."
-        )
+            tarjetas = []
+            for _, review in casos_mes.iterrows():
+                color = "green" if review.get("color") == "green" else "red"
+                comentario = valor_texto(
+                    review.get("comment"),
+                    valor_texto(
+                        review.get("resolution_comment"),
+                        "No comments by the Applicant.",
+                    ),
+                )
+                etiquetas = unir_lista(review.get("excellence"))
+                mejoras = unir_lista(review.get("improve"))
+                senales = etiquetas or mejoras or valor_texto(
+                    review.get("classification_reason")
+                )
+                detalle = " · ".join(
+                    parte
+                    for parte in [
+                        valor_texto(review.get("issue_type_1")),
+                    ]
+                    if parte and parte != "Sin registro"
+                )
+                tarjetas.append(
+                    f'<div class="model-review-card model-review-{color}">'
+                    f'<div class="model-review-date">'
+                    f'{html.escape(formatear_fecha_simple(review.get("posted_dt")))}'
+                    '</div>'
+                    f'<div class="model-review-detail">{html.escape(detalle)}</div>'
+                    f'<div class="model-review-text">{html.escape(comentario)}</div>'
+                    f'<div class="model-review-detail">{html.escape(senales)}</div>'
+                    '</div>'
+                )
+
+            st.markdown(
+                "".join(tarjetas),
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                "Experiencias del mes seleccionado, ordenadas de la más "
+                "reciente a la más antigua."
+            )
 
 st.divider()
 # La travesia aparece primero para mantener la narrativa de recorrido.
