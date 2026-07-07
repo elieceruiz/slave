@@ -402,34 +402,8 @@ st.markdown(
             margin-bottom: 0.25rem;
         }
 
-        div[data-testid=stHorizontalBlock]:has(.faro-header) {
-            align-items: flex-start;
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-        }
 
-        div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:first-child {
-            flex: 1 1 auto !important;
-            width: auto !important;
-        }
 
-        div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:last-child {
-            flex: 0 0 auto !important;
-            width: auto !important;
-        }
-
-        div[data-testid=stHorizontalBlock]:has(.faro-header) div[data-testid=stButton] {
-            margin-bottom: 0;
-        }
-
-        div[data-testid=stHorizontalBlock]:has(.faro-header) div[data-testid=stButton] > button[kind=secondary] {
-            font-size: 0.72rem;
-            min-height: 1.9rem;
-            padding: 0.32rem 0.55rem;
-        }
     }
 
     .auth-card {
@@ -473,78 +447,6 @@ st.markdown(
         background: #ffd07a;
         border-color: #ffd07a;
         color: #11131a !important;
-    }
-
-    .session-bar {
-        align-items: center;
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.55rem;
-        width: 100%;
-    }
-
-    .session-pill {
-        align-items: center;
-        background: rgba(255, 255, 255, 0.035);
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        border-radius: 999px;
-        color: #9299a8;
-        display: inline-flex;
-        font-size: 0.76rem;
-        gap: 0.35rem;
-        letter-spacing: 0.02em;
-        padding: 0.38rem 0.65rem;
-        white-space: nowrap;
-    }
-
-    div[data-testid=stHorizontalBlock]:has(.faro-header) {
-        align-items: flex-start;
-        gap: 0.75rem;
-        margin-bottom: 0.35rem;
-    }
-
-    div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:first-child {
-        flex: 1 1 auto !important;
-        min-width: 0;
-        width: auto !important;
-    }
-
-    div[data-testid=stHorizontalBlock]:has(.faro-header) > div[data-testid=column]:last-child {
-        flex: 0 0 auto !important;
-        min-width: 0;
-        width: auto !important;
-    }
-
-    div[data-testid=stElementContainer]:has(div[data-testid=stButton]) {
-        display: flex;
-        justify-content: flex-end;
-        width: 100%;
-    }
-
-    div[data-testid=stElementContainer]:has(div[data-testid=stButton]) div[data-testid=stButton],
-    div[data-testid=stButton] {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 0.55rem;
-        width: auto;
-    }
-
-    div[data-testid="stButton"] > button[kind="secondary"] {
-        background: rgba(255, 255, 255, 0.035);
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        border-radius: 999px;
-        color: #9299a8;
-        font-size: 0.76rem;
-        margin-left: auto;
-        min-height: 2.05rem;
-        padding: 0.38rem 0.65rem;
-        white-space: nowrap;
-        width: auto;
-    }
-
-    div[data-testid="stButton"] > button[kind="secondary"]:hover {
-        border-color: rgba(242, 185, 93, 0.45);
-        color: #f2b95d;
     }
 
     @media (max-width: 390px) {
@@ -702,10 +604,6 @@ def cerrar_sesion():
     limpiar_query_params()
     st.rerun()
 
-
-def mostrar_control_sesion():
-    if st.button("Cerrar sesión", key="logout_button"):
-        cerrar_sesion()
 
 def validar_oauth_state(state, cookie_secret):
     try:
@@ -1148,24 +1046,18 @@ puntos_experiencias = (
     + '<span class="experience-dot experience-other"></span>' * no_positivas
 )
 
-encabezado_col, sesion_col = st.columns([0.68, 0.32], gap="small")
-
-with encabezado_col:
-    st.markdown(
-        f"""
-        <!-- Portada silenciosa: orienta sin controles manuales. -->
-        <div class="faro-header">
-            <div class="faro-brand">FARO 80</div>
-            <div class="faro-signal">
-                Última señal: {ultima_senal_texto}
-            </div>
+st.markdown(
+    f"""
+    <!-- Portada silenciosa: orienta sin controles manuales. -->
+    <div class="faro-header">
+        <div class="faro-brand">FARO 80</div>
+        <div class="faro-signal">
+            Última señal: {ultima_senal_texto}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with sesion_col:
-    mostrar_control_sesion()
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.markdown(
     f"""
