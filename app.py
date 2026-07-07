@@ -1396,11 +1396,11 @@ if not reviews_historicas.empty:
                 </div>
                 <div class="model-stat">
                     <div class="model-stat-value">{green_reviews}</div>
-                    <div class="model-stat-label">green</div>
+                    <div class="model-stat-label">positivas</div>
                 </div>
                 <div class="model-stat">
                     <div class="model-stat-value">{red_reviews}</div>
-                    <div class="model-stat-label">red</div>
+                    <div class="model-stat-label">no positivas</div>
                 </div>
                 <div class="model-stat">
                     <div class="model-stat-value">{positive_rate:.1f}%</div>
@@ -1444,8 +1444,8 @@ if not reviews_historicas.empty:
                 f'<div class="model-month-name">{nombre_mes_largo(fila_mes["mes"])}</div>'
                 '<div class="model-month-detail">'
                 f'{int(fila_mes["experiencias"])} experiencias Â· '
-                f'{int(fila_mes["green"])} green Â· '
-                f'{int(fila_mes["red"])} red'
+                f'{int(fila_mes["green"])} positivas Â· '
+                f'{int(fila_mes["red"])} no positivas'
                 '</div>'
                 '</div>'
                 f'<div class="model-month-rate">{fila_mes["resultado"]:.1f}%</div>'
@@ -1476,6 +1476,7 @@ if not reviews_historicas.empty:
         tarjetas = []
         for _, review in casos_mes.iterrows():
             color = "green" if review.get("color") == "green" else "red"
+            color_texto = "POSITIVA" if color == "green" else "NO POSITIVA"
             comentario = valor_texto(
                 review.get("comment"),
                 valor_texto(review.get("resolution_comment")),
@@ -1488,7 +1489,7 @@ if not reviews_historicas.empty:
             detalle = " Â· ".join(
                 parte
                 for parte in [
-                    color.upper(),
+                    color_texto,
                     valor_texto(review.get("issue_type_1")),
                     valor_texto(review.get("channel")),
                 ]
